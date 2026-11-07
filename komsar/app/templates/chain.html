@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block title %}Blockchain Records{% endblock %}
+{% block content %}
+<h1>Blockchain Records</h1><div class="sub">Khusus admin. Hash chaining SHA-256 (tamper-evident, tanpa Proof-of-Work).</div>
+<div class="card">{% if validation.valid %}<span class="badge ok">Rantai valid</span> {{ validation.length }} blok terverifikasi.
+{% else %}<span class="badge bad">Rantai TIDAK valid</span>{% for e in validation.errors %}<div class="note">{{ e }}</div>{% endfor %}{% endif %}</div>
+<div class="card"><div class="table-wrap"><table><tr><th>#</th><th>Waktu</th><th>Aset</th><th>Pengirim → Penerima</th><th>Hash ciphertext</th><th>Previous hash</th><th>Hash blok</th></tr>
+{% for b in blocks %}<tr><td>{{ b.index }}</td><td>{{ b.timestamp|dt }}</td>
+<td>{{ b.metadata.original_name or b.metadata.note }}<div class="note">{{ b.metadata.size }}{{ ' B · ' ~ b.metadata.algo if b.metadata.algo }}</div></td>
+<td>{{ b.sender.username }}{% if b.recipients %} → {% for r in b.recipients %}{{ r.username }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}</td>
+<td class="mono">{{ b.ciphertext_hash[:16] }}…</td><td class="mono">{{ b.previous_hash[:16] }}…</td><td class="mono">{{ b.hash[:16] }}…</td></tr>{% endfor %}</table></div></div>
+{% endblock %}

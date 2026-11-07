@@ -1,0 +1,34 @@
+{% extends 'base.html' %}{% from '_macros.html' import csrf, kind_badge %}
+{% block title %}Dekripsi{% endblock %}
+{% block content %}
+<h1>Decryption Center</h1>
+<div class="sub">Gambar steganografi → masukkan ID → kunci diekstrak dari gambar → masukkan ulang kunci → data didekripsi.</div>
+<div class="card"><h2>Langkah 1 · Gambar steganografi &amp; ID</h2>
+<form method="post" action="{{ url_for('decrypt.center') }}">{{ csrf() }}<input type="hidden" name="action" value="extract">
+  <div class="row"><div><label>Jenis data</label><select id="kind-filter" name="kind">{% for v, t in kinds %}<option value="{{ v }}">{{ t }}</option>{% endfor %}</select></div>
+  <div><label>Data yang dibuka</label><select id="delivery-select" name="delivery_id" required>
+    {% for i in items %}<option value="{{ i.delivery_id }}" data-kind="{{ i.kind }}" {{ 'selected' if i.delivery_id == chosen }}>{{ i.label }} · dari {{ i.sender.username }} · {{ i.created_at|dt }}{% if i.file %} · {{ i.file.name }}{% endif %}</option>{% endfor %}</select></div></div>
+  <label>Gambar steganografi untuk data ini</label>
+  <img id="stego-preview" class="preview{{ '' if chosen else ' hidden' }}" alt="Gambar steganografi" data-url="{{ url_for('decrypt.stego', delivery_id='__ID__', inline=1) }}" src="{% if chosen %}{{ url_for('decrypt.stego', delivery_id=chosen, inline=1) }}{% endif %}">
+  <label>User ID Anda</label><input type="password" name="user_id" autocomplete="off" required>
+  <p><button type="submit">Ekstrak kunci dari gambar</button></p>
+</form></div>
+{% if step2 %}
+<div class="card"><h2>Langkah 2 · Masukkan kunci hasil steganografi</h2>
+<p>Kunci yang berhasil diekstrak dari gambar:</p>
+<div class="keybox" id="extracted-key"><code>{{ step2.secret }}</code></div>
+<form method="post" action="{{ url_for('decrypt.center') }}">{{ csrf() }}<input type="hidden" name="action" value="decrypt"><input type="hidden" name="token" value="{{ step2.token }}">
+  <label>Ketik ulang kunci di atas</label><input type="text" name="secret_key" autocomplete="off" required>
+  <p class="note">Sistem menggabungkan User ID Anda dengan kunci ini. Jika tidak sesuai, data tidak dibuka.</p>
+  <p><button type="submit">Dekripsi</button></p>
+</form></div>
+{% endif %}
+{% if result %}
+<div class="card"><h2>Berhasil didekripsi {{ kind_badge({'label': 'Penting' if result.is_important else 'Biasa', 'is_important': result.is_important}) }}</h2>
+{% if result.text is not none %}<pre class="plain">{{ result.text }}</pre>
+{% else %}<p>{{ result.filename }} ({{ (result.data|length / 1024)|round(1) }} KB)</p>
+  {% if result.mime in inline_images %}<p><img class="preview" alt="{{ result.filename }}" src="{{ url_for('decrypt.download', token=token, inline=1) }}"></p>{% endif %}
+  <a class="btn" href="{{ url_for('decrypt.download', token=token) }}">Unduh file asli</a>
+  <p class="note">Tautan unduh berlaku 10 menit dan hanya untuk akun Anda.</p>{% endif %}</div>
+{% endif %}
+{% endblock %}

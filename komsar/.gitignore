@@ -1,0 +1,6 @@
+.env
+instance/
+__pycache__/
+storage/encrypted_files/*
+storage/stego_images/*
+*.db

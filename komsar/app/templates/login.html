@@ -1,0 +1,11 @@
+{% extends 'base.html' %}{% block title %}Login{% endblock %}
+{% block public %}
+<div class="card login-card">
+  <div class="brand">Kom<span>SaR</span></div><div class="tag">Komunikasi Satuan Rakyat</div>
+  <form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Username</label><input type="text" name="username" autocomplete="username" required autofocus>
+    <label>Password</label><input type="password" name="password" autocomplete="current-password" required>
+    <p><button type="submit">Masuk</button></p>
+  </form>
+</div>
+{% endblock %}

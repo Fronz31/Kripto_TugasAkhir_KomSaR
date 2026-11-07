@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block title %}Aset Penting{% endblock %}
+{% block content %}
+<h1>Aset Penting</h1><div class="sub">Integritas diperiksa terhadap catatan blockchain setiap halaman dibuka.</div>
+<div class="card"><div class="table-wrap"><table><tr><th>Nama</th><th>Ukuran</th><th>Peran</th><th>Pengirim → Penerima</th><th>Waktu</th><th>Integritas</th></tr>
+{% for a in assets %}<tr><td>{{ a.name }}</td><td>{{ (a.size / 1024)|round(1) }} KB</td><td>{{ 'Pengirim' if a.role == 'sender' else 'Penerima' }}</td>
+<td>{{ a.sender.username }} → {% for r in a.recipients %}{{ r.username }}{% if not loop.last %}, {% endif %}{% endfor %}</td>
+<td>{{ a.sent_at|dt }}</td>
+<td>{% if a.integrity.ok %}<span class="badge ok">Terverifikasi</span>{% else %}<span class="badge bad">Bermasalah</span><div class="note">{{ a.integrity.message }}</div>{% endif %}</td></tr>
+{% else %}<tr><td colspan="6" class="note">Belum ada aset penting.</td></tr>{% endfor %}</table></div></div>
+{% endblock %}

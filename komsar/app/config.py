@@ -1,0 +1,58 @@
+"""Konfigurasi aplikasi. Secret dibaca dari environment/.env, bukan dari source code."""
+import base64
+import os
+import secrets
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / ".env")
+
+
+def _int(name: str, default: int) -> int:
+    return int(os.environ.get(name, default))
+
+
+class Config:
+    SECRET_KEY = os.environ.get("KOMSAR_SECRET_KEY")
+    DB_MASTER_KEY_B64 = os.environ.get("KOMSAR_DB_MASTER_KEY")
+    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL") or f"sqlite:///{BASE_DIR / 'instance' / 'komsar.db'}"
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    STORAGE_DIR = Path(os.environ.get("STORAGE_DIR", BASE_DIR / "storage"))
+    ENCRYPTED_FILES_DIR = STORAGE_DIR / "encrypted_files"
+    STEGO_IMAGES_DIR = STORAGE_DIR / "stego_images"
+    COVER_IMAGES_DIR = BASE_DIR / "assets" / "covers"
+
+    MAX_FILE_BYTES = _int("MAX_FILE_MB", 25) * 1024 * 1024
+    FILE_ALGO = "chacha20-poly1305"      # file & gambar biasa
+    ASSET_ALGO = "aes-256-gcm"           # aset penting
+
+    ARGON2_TIME_COST = _int("ARGON2_TIME_COST", 3)
+    ARGON2_MEMORY_KIB = _int("ARGON2_MEMORY_KIB", 65536)
+    ARGON2_PARALLELISM = _int("ARGON2_PARALLELISM", 2)
+
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = "Lax"
+    TESTING = False
+
+
+class TestConfig(Config):
+    """Konfigurasi pengujian: kunci dibuat acak saat runtime, KDF diringankan agar cepat."""
+    TESTING = True
+    SECRET_KEY = secrets.token_hex(16)
+    DB_MASTER_KEY_B64 = base64.b64encode(os.urandom(32)).decode()
+    SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
+    ARGON2_TIME_COST = 1
+    ARGON2_MEMORY_KIB = 64
+    ARGON2_PARALLELISM = 1
+    MAX_FILE_BYTES = 1024 * 1024
+
+
+def load_db_master_key(config) -> bytes:
+    raw = config.get("DB_MASTER_KEY_B64") if hasattr(config, "get") else config.DB_MASTER_KEY_B64
+    key = base64.b64decode(raw)
+    if len(key) != 32:
+        raise ValueError("KOMSAR_DB_MASTER_KEY harus 32 byte (base64).")
+    return key

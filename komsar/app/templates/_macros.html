@@ -1,0 +1,7 @@
+{% macro csrf() %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endmacro %}
+{% macro kind_badge(item) %}<span class="badge {{ 'important' if item.is_important else 'normal' }}">{{ item.label }}</span>{% endmacro %}
+{% macro status_badge(s) %}<span class="badge st">{{ s|status }}</span>{% endmacro %}
+{% macro recipients_input() %}
+<label>Penerima (username, pisahkan dengan koma)</label>
+<input type="text" name="recipients" placeholder="contoh: budi01, citra01" autocomplete="off" required>
+{% endmacro %}

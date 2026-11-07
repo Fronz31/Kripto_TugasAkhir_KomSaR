@@ -1,0 +1,19 @@
+{% extends 'base.html' %}{% from '_macros.html' import kind_badge, status_badge %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<h1>Halo, {{ me.full_name }}</h1><div class="sub">{{ me.unit }}</div>
+<div class="grid">
+  <div class="stat"><b>{{ stats.inbox }}</b><span>Kotak masuk</span></div>
+  <div class="stat"><b>{{ stats.unopened }}</b><span>Belum didekripsi</span></div>
+  <div class="stat"><b>{{ stats.sent }}</b><span>Terkirim</span></div>
+  <div class="stat"><b>{{ stats.assets }}</b><span>Aset penting</span></div>
+  {% if admin %}<div class="stat"><b>{{ admin.users }}</b><span>Pengguna</span></div>
+  <div class="stat"><b>{{ admin.chain_length }}</b><span>Blok · rantai {{ 'valid' if admin.chain_valid else 'TIDAK VALID' }}</span></div>{% endif %}
+</div>
+<div class="card"><h2>Terbaru</h2>
+{% for i in recent %}<div class="msg {{ 'important' if i.is_important }}">{{ kind_badge(i) }} {{ status_badge(i.status) }}
+  <div class="meta">dari {{ i.sender.full_name }} ({{ i.sender.unit }}) · {{ i.created_at|dt }}</div>
+  <span class="lock">🔒 Terenkripsi{% if i.file %} · {{ i.file.name }}{% endif %}</span>
+  {% if i.status != 'decrypted' %} · <a href="{{ url_for('decrypt.center', d=i.delivery_id) }}">Dekripsi</a>{% endif %}</div>
+{% else %}<p class="note">Belum ada pesan masuk.</p>{% endfor %}</div>
+{% endblock %}

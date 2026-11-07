@@ -1,0 +1,12 @@
+{% extends 'base.html' %}{% from '_macros.html' import csrf %}
+{% block title %}Edit pengguna{% endblock %}
+{% block content %}
+<h1>Edit {{ user.username }}</h1><div class="sub">Username dan User ID tidak dapat diubah ({{ user.user_id }}).</div>
+<div class="card"><form method="post">{{ csrf() }}
+  <label>Nama lengkap</label><input type="text" name="full_name" value="{{ user.full_name }}" required>
+  <label>Unit/Satuan</label><input type="text" name="unit" value="{{ user.unit }}" required>
+  <label>Password baru (kosongkan jika tidak diubah)</label><input type="password" name="password" autocomplete="new-password">
+  <label><input type="checkbox" name="is_active" {{ 'checked' if user.is_active }}> Aktif</label>
+  <label><input type="checkbox" name="is_admin" {{ 'checked' if user.is_admin }}> Admin</label>
+  <p><button type="submit">Simpan</button> <a class="btn ghost" href="{{ url_for('users.index') }}">Batal</a></p></form></div>
+{% endblock %}

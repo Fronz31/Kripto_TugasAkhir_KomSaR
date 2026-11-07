@@ -1,0 +1,11 @@
+{% extends 'base.html' %}{% from '_macros.html' import csrf %}
+{% block title %}Profil{% endblock %}
+{% block content %}
+<h1>Profil</h1>
+<div class="card"><table><tr><th>Username</th><td>{{ me.username }}</td></tr><tr><th>Nama</th><td>{{ me.full_name }}</td></tr><tr><th>Unit</th><td>{{ me.unit }}</td></tr><tr><th>Peran</th><td>{{ 'Admin' if me.is_admin else 'User' }}</td></tr></table></div>
+<div class="card"><h2>Ubah password</h2><form method="post">{{ csrf() }}
+  <label>Password saat ini</label><input type="password" name="current" autocomplete="current-password" required>
+  <label>Password baru (min. 8 karakter)</label><input type="password" name="new" autocomplete="new-password" required>
+  <label>Konfirmasi password baru</label><input type="password" name="confirm" autocomplete="new-password" required>
+  <p><button type="submit">Simpan</button></p></form></div>
+{% endblock %}
