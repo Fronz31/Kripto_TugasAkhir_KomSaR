@@ -140,7 +140,7 @@ def test_export_json(tmp_path):
 # ---------------- aset penting ----------------
 @pytest.fixture
 def env(app):
-    u = {n: us.create_user(f"{n}01", f"{n[0].upper()}001", n.title(), f"Unit {n[0].upper()}", f"password-{n}")
+    u = {n: us.create_user(f"{n}01", n.title(), f"Unit {n[0].upper()}", f"password-{n}")
          for n in ("andi", "budi", "citra", "deni")}
     repo, chain = SqlRepository(), Blockchain()
     assets = AssetService(repo, chain)
@@ -169,7 +169,7 @@ def test_asset_creates_one_block_with_hash_and_metadata_only(env):
     assert b.asset_id == f.id and f.block_index == 1
     assert b.ciphertext_hash == hashlib.sha256(f.ciphertext).hexdigest() == f.ciphertext_sha256
     assert b.metadata["original_name"] == "kontrak.pdf" and b.metadata["size"] == len(data)
-    assert b.sender["user_id"] == "A001" and {r["user_id"] for r in b.recipients} == {"B001", "C001", "D001"}
+    assert b.sender["user_id"] == env.u["andi"].user_id and {r["user_id"] for r in b.recipients} == {env.u["budi"].user_id, env.u["citra"].user_id, env.u["deni"].user_id}
     dump = json.dumps(b.to_record())
     assert SECRET not in dump and data[:16].hex() not in dump          # tanpa plaintext/kunci
     assert b.previous_hash == bs[0].hash and env.chain.validate().valid
@@ -223,7 +223,7 @@ def test_decryption_center_asset_flow_with_blockchain(env):
     m, f, data = send_asset(env)
     b = env.u["budi"]
     d = delivery_of(env, m, b)
-    res = env.center.open(b, d.id, "B001")
+    res = env.center.open(b, d.id, env.u["budi"].user_id)
     assert res.data == data and res.is_important and res.filename == "kontrak.pdf"
 
 
@@ -233,7 +233,7 @@ def test_decryption_center_refuses_modified_asset(env):
     d = delivery_of(env, m, b)
     raw = corrupt(f, -1)
     with pytest.raises(IntegrityViolationError) as e:
-        env.center.open(b, d.id, "B001")
+        env.center.open(b, d.id, env.u["budi"].user_id)
     assert "berubah" in str(e.value)
     assert env.repo.get_file(f.id).ciphertext == raw and d.status != "decrypted"   # ciphertext tidak diubah/dihapus
 
@@ -243,7 +243,7 @@ def test_decryption_center_refuses_when_chain_tampered(env):
     b = env.u["budi"]
     tamper(1, recipients=[{"user_id": "Z999"}])
     with pytest.raises(IntegrityViolationError):
-        env.center.open(b, delivery_of(env, m, b).id, "B001")
+        env.center.open(b, delivery_of(env, m, b).id, env.u["budi"].user_id)
 
 
 def test_known_limitation_full_rewrite_not_detected_but_aead_still_protects(env):
@@ -257,4 +257,4 @@ def test_known_limitation_full_rewrite_not_detected_but_aead_still_protects(env)
     tamper(1, ciphertext_hash=blk.ciphertext_hash, hash=blk.hash)
     assert env.assets.verify_integrity(b, f.id).ok                    # batas: tidak terdeteksi oleh blockchain
     with pytest.raises(DecryptionError):                              # tetapi isi yang diubah tak bisa didekripsi
-        env.center.open(b, delivery_of(env, m, b).id, "B001")
+        env.center.open(b, delivery_of(env, m, b).id, env.u["budi"].user_id)

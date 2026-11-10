@@ -25,7 +25,7 @@ PLAIN = "Pergerakan pasukan dimulai pukul 05.00"
 
 @pytest.fixture
 def env(app):
-    u = {n: us.create_user(f"{n}01", f"{n[0].upper()}001", n.title(), f"Unit {n[0].upper()}", f"password-{n}")
+    u = {n: us.create_user(f"{n}01", n.title(), f"Unit {n[0].upper()}", f"password-{n}")
          for n in ("andi", "budi", "citra", "deni")}
     repo = SqlRepository()
     master = app.config["DB_MASTER_KEY"]
@@ -49,7 +49,7 @@ def test_normal_text_roundtrip(env):
     assert m.kind == KIND_TEXT and PLAIN.encode() not in m.ciphertext     # DB hanya ciphertext
     with pytest.raises(DecryptionError):                                  # tidak ada lapisan DB pada pesan biasa
         decrypt_from_db(env.master, m.ciphertext)
-    res = env.center.open(b, delivery_of(env, m, b).id, "b001")           # ID dinormalisasi
+    res = env.center.open(b, delivery_of(env, m, b).id, env.u["budi"].user_id.lower().replace("-", ""))           # ID dinormalisasi
     assert res.text == PLAIN and not res.is_important
     assert delivery_of(env, m, b).status == STATUS_DECRYPTED
 
@@ -58,8 +58,8 @@ def test_text_visible_again_after_decrypt(env):
     a, b = env.u["andi"], env.u["budi"]
     m = env.msg.send_text(a, "budi01", PLAIN, SECRET)
     d = delivery_of(env, m, b)
-    assert env.center.open(b, d.id, "B001").text == PLAIN
-    assert env.center.open(b, d.id, "B001").text == PLAIN                 # isi tidak hilang
+    assert env.center.open(b, d.id, env.u["budi"].user_id).text == PLAIN
+    assert env.center.open(b, d.id, env.u["budi"].user_id).text == PLAIN                 # isi tidak hilang
 
 
 # ---------------- pesan penting ----------------
@@ -69,7 +69,7 @@ def test_important_text_has_extra_layer(env):
     assert m.kind == KIND_IMPORTANT_TEXT and PLAIN.encode() not in m.ciphertext
     inner = decrypt_from_db(env.master, m.ciphertext)                     # aplikasi dapat membuka lapisan DB
     assert len(inner) < len(m.ciphertext) and PLAIN.encode() not in inner
-    res = env.center.open(b, delivery_of(env, m, b).id, "B001", expected_kind=KIND_IMPORTANT_TEXT)
+    res = env.center.open(b, delivery_of(env, m, b).id, env.u["budi"].user_id, expected_kind=KIND_IMPORTANT_TEXT)
     assert res.text == PLAIN and res.is_important
 
 
@@ -89,7 +89,7 @@ def test_wrong_id_no_partial_plaintext_and_ciphertext_unchanged(env):
     a, b = env.u["andi"], env.u["budi"]
     m = env.msg.send_text(a, ["budi01"], PLAIN, SECRET, important=True)
     before, d = m.ciphertext, delivery_of(env, m, b)
-    for bad in ("C001", "B002", "x"):
+    for bad in (env.u["citra"].user_id, "B002", "x"):
         with pytest.raises(InvalidIDError):
             env.center.open(b, d.id, bad)
     with pytest.raises(ValidationError):
@@ -103,18 +103,39 @@ def test_cannot_open_others_or_sender(env):
     m = env.msg.send_text(a, ["budi01"], PLAIN, SECRET)
     d = delivery_of(env, m, b)
     with pytest.raises(AccessDeniedError):
-        env.center.open(c, d.id, "B001")          # Citra tahu ID Budi, tapi bukan penerima
+        env.center.open(c, d.id, env.u["budi"].user_id)          # Citra tahu ID Budi, tapi bukan penerima
     with pytest.raises(AccessDeniedError):
-        env.center.open(a, d.id, "B001")          # pengirim pun bukan penerima
+        env.center.open(a, d.id, env.u["budi"].user_id)          # pengirim pun bukan penerima
     with pytest.raises(AccessDeniedError):
-        env.center.open(b, "tidak-ada", "B001")
+        env.center.open(b, "tidak-ada", env.u["budi"].user_id)
+
+
+def test_id_normalised_without_dashes_and_lowercase(env):
+    a, b = env.u["andi"], env.u["budi"]
+    m = env.msg.send_text(a, ["budi01"], PLAIN, SECRET, important=True)
+    raw = " " + b.user_id.replace("-", " ").lower() + " "
+    assert env.center.open(b, delivery_of(env, m, b).id, raw).text == PLAIN
+
+
+def test_regenerate_invalidates_old_id(env):
+    a, b = env.u["andi"], env.u["budi"]
+    m = env.msg.send_text(a, ["budi01"], PLAIN, SECRET)
+    d, old = delivery_of(env, m, b), b.user_id
+    us.regenerate_user_id(b.id)
+    for rid in (old, b.user_id):                  # ID lama ditolak; ID baru tidak cocok dengan paket lama
+        with pytest.raises(InvalidIDError):
+            env.center.open(b, d.id, rid)
+        with pytest.raises(InvalidIDError):
+            env.center.extract_secret(b, d.id, rid)
+    m2 = env.msg.send_text(a, ["budi01"], PLAIN, SECRET)               # pesan baru memakai ID baru
+    assert env.center.open(b, delivery_of(env, m2, b).id, b.user_id).text == PLAIN
 
 
 def test_expected_kind_mismatch(env):
     a, b = env.u["andi"], env.u["budi"]
     m = env.msg.send_text(a, ["budi01"], PLAIN, SECRET)
     with pytest.raises(ValidationError):
-        env.center.open(b, delivery_of(env, m, b).id, "B001", expected_kind=KIND_FILE)
+        env.center.open(b, delivery_of(env, m, b).id, env.u["budi"].user_id, expected_kind=KIND_FILE)
 
 
 # ---------------- multi-penerima ----------------
@@ -123,7 +144,7 @@ def test_multiple_recipients_independent(env):
     m = env.msg.send_text(a, ["budi01", "citra01", "deni01", "BUDI01"], PLAIN, SECRET)   # duplikat diabaikan
     ds = env.repo.deliveries_for_message(m.id)
     assert len(ds) == 3 and len({d.stego_png for d in ds}) == 3 and len({d.wrapped_key for d in ds}) == 3
-    for name, rid in (("budi", "B001"), ("citra", "C001"), ("deni", "D001")):
+    for name, rid in (("budi", env.u["budi"].user_id), ("citra", env.u["citra"].user_id), ("deni", env.u["deni"].user_id)):
         user = env.u[name]
         assert extract_key(delivery_of(env, m, user).stego_png, rid) == SECRET.encode()
         assert env.center.open(user, delivery_of(env, m, user).id, rid).text == PLAIN
@@ -135,7 +156,7 @@ def test_recipient_id_cannot_open_other_package_even_with_access(env):
     m = env.msg.send_text(a, ["budi01", "citra01"], PLAIN, SECRET)
     d_c = delivery_of(env, m, c)
     with pytest.raises(InvalidIDError):                 # andaikan Budi memiliki paket Citra: ID B001 tidak membukanya
-        extract_key(d_c.stego_png, "B001")
+        extract_key(d_c.stego_png, env.u["budi"].user_id)
 
 
 def test_unknown_recipient_saves_nothing(env):
@@ -157,7 +178,7 @@ def test_status_flow_and_sent_view(env):
     assert delivery_of(env, m, b).status == STATUS_SENT
     env.msg.inbox(b)
     assert delivery_of(env, m, b).status == STATUS_DELIVERED
-    env.center.open(b, delivery_of(env, m, b).id, "B001")
+    env.center.open(b, delivery_of(env, m, b).id, env.u["budi"].user_id)
     st = {r["username"]: r["status"] for r in env.msg.sent(a)[0]["recipients"]}
     assert st == {"budi01": STATUS_DECRYPTED, "citra01": STATUS_SENT}
 
@@ -170,7 +191,7 @@ def test_file_roundtrip_multi_recipient(env):
     f = env.repo.get_file(m.file_id)
     enc = f.ciphertext
     assert m.kind == KIND_FILE and f.algo == file_cipher.ALGO_CHACHA20 and b"%PDF" not in enc
-    for name, rid in (("budi", "B001"), ("citra", "C001")):
+    for name, rid in (("budi", env.u["budi"].user_id), ("citra", env.u["citra"].user_id)):
         res = env.center.open(env.u[name], delivery_of(env, m, env.u[name]).id, rid)
         assert res.data == data and res.filename == "Laporan Harian.pdf" and res.mime == "application/pdf"
     assert env.repo.get_file(f.id).ciphertext == enc            # ciphertext tidak berubah
@@ -194,7 +215,7 @@ def test_tampered_file_detected_and_unchanged(env):
     m = env.msg.send_file(a, ["budi01"], "data.csv", os.urandom(5000), SECRET)
     raw = corrupt(env.repo.get_file(m.file_id), 60)
     with pytest.raises(DecryptionError):
-        env.center.open(b, delivery_of(env, m, b).id, "B001")
+        env.center.open(b, delivery_of(env, m, b).id, env.u["budi"].user_id)
     assert env.repo.get_file(m.file_id).ciphertext == raw
 
 
@@ -210,7 +231,7 @@ def test_image_transfer_distinct_from_stego(env):
     assert [x["type"] for x in info["attachments"]] == ["ciphertext_file", "stego_image"]
     with pytest.raises(DecryptionError):                     # stego tidak bisa dipakai sebagai gambar utama
         file_cipher.decrypt_bytes(os.urandom(32), d.stego_png)
-    res = env.center.open(b, d.id, "B001", expected_kind=KIND_IMAGE)
+    res = env.center.open(b, d.id, env.u["budi"].user_id, expected_kind=KIND_IMAGE)
     assert res.data == png and res.filename == "foto.png"
 
 
@@ -229,11 +250,11 @@ def test_important_asset_aesgcm_and_hash_check(env):
     m = env.msg.send_file(a, ["budi01"], "kontrak.docx", data, SECRET, kind=KIND_ASSET)
     f = env.repo.get_file(m.file_id)
     assert f.algo == file_cipher.ALGO_AESGCM and len(f.ciphertext_sha256) == 64
-    res = env.center.open(b, delivery_of(env, m, b).id, "B001")
+    res = env.center.open(b, delivery_of(env, m, b).id, env.u["budi"].user_id)
     assert res.data == data and res.is_important
     corrupt(f, -1)
     with pytest.raises(IntegrityViolationError):             # hash ciphertext tidak cocok
-        env.center.open(b, delivery_of(env, m, b).id, "B001")
+        env.center.open(b, delivery_of(env, m, b).id, env.u["budi"].user_id)
 
 
 # ---------------- alur dua langkah (ekstrak -> ketik ulang kunci) ----------------
@@ -244,9 +265,9 @@ def test_two_step_extract_then_manual_key(env):
     a, b = env.u["andi"], env.u["budi"]
     m = env.msg.send_text(a, ["budi01"], PLAIN, SECRET)
     d = delivery_of(env, m, b)
-    secret = env.center.extract_secret(b, d.id, "b001")
+    secret = env.center.extract_secret(b, d.id, env.u["budi"].user_id.lower().replace("-", ""))
     assert secret == SECRET and d.status != STATUS_DECRYPTED
-    res = env.center.open(b, d.id, "B001", secret_input=secret)
+    res = env.center.open(b, d.id, env.u["budi"].user_id, secret_input=secret)
     assert res.text == PLAIN and d.status == STATUS_DECRYPTED
 
 
@@ -255,19 +276,19 @@ def test_two_step_wrong_id_and_wrong_key(env):
     m = env.msg.send_text(a, ["budi01"], PLAIN, SECRET, important=True)
     d = delivery_of(env, m, b)
     with pytest.raises(InvalidIDError):
-        env.center.extract_secret(b, d.id, "C001")
+        env.center.extract_secret(b, d.id, env.u["citra"].user_id)
     with pytest.raises(StegoKeyMismatchError):
-        env.center.open(b, d.id, "B001", secret_input="SALAH")
+        env.center.open(b, d.id, env.u["budi"].user_id, secret_input="SALAH")
     with pytest.raises(StegoKeyMismatchError):
-        env.center.open(b, d.id, "B001", secret_input=SECRET + " ")        # harus persis sama
+        env.center.open(b, d.id, env.u["budi"].user_id, secret_input=SECRET + " ")        # harus persis sama
     with pytest.raises(ValidationError):
-        env.center.open(b, d.id, "B001", secret_input="")
+        env.center.open(b, d.id, env.u["budi"].user_id, secret_input="")
     assert d.status != STATUS_DECRYPTED and d.failed_attempts == 3
-    assert env.center.open(b, d.id, "B001", secret_input=SECRET).text == PLAIN
+    assert env.center.open(b, d.id, env.u["budi"].user_id, secret_input=SECRET).text == PLAIN
 
 
 def test_extract_secret_requires_recipient(env):
     a, b, c = env.u["andi"], env.u["budi"], env.u["citra"]
     m = env.msg.send_text(a, ["budi01"], PLAIN, SECRET)
     with pytest.raises(AccessDeniedError):
-        env.center.extract_secret(c, delivery_of(env, m, b).id, "B001")
+        env.center.extract_secret(c, delivery_of(env, m, b).id, env.u["budi"].user_id)
