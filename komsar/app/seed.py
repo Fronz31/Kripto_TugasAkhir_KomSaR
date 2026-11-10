@@ -1,4 +1,8 @@
-"""Akun contoh untuk pengujian (JANGAN dipakai di produksi)."""
+"""Akun contoh untuk development (KOMSAR_SEED_DEMO=1). JANGAN dipakai di produksi.
+
+Akun contoh tidak punya profil suara dan tidak wajib daftar, jadi hanya bisa login bila
+VOICE_BACKEND=fake + FLASK_DEBUG=1 (langkah suara dilewati) dan KOMSAR_REQUIRE_DONGLE=0.
+"""
 from .models.user import User
 from .services import user_service as us
 

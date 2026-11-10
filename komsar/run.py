@@ -1,7 +1,7 @@
 """Menjalankan KomSaR (mode pengembangan/pengujian).
 
-Pertama kali: membuat .env berisi kunci acak dan akun contoh bila belum ada pengguna.
-Buka http://127.0.0.1:5000 di browser.
+Pertama kali: membuat .env berisi kunci acak. Akun contoh hanya dibuat bila KOMSAR_SEED_DEMO=1
+(development). Admin produksi dibuat dengan `flask --app run komsar bootstrap-admin`.
 """
 import base64
 import os
@@ -21,11 +21,13 @@ from app.seed import DEMO_PASSWORD, seed_demo_users   # noqa: E402
 app = create_app()
 
 if __name__ == "__main__":
-    with app.app_context():
-        created = seed_demo_users()
+    created = []
+    if os.environ.get("KOMSAR_SEED_DEMO") == "1":
+        with app.app_context():
+            created = seed_demo_users()
     if created:
         print(f"Akun contoh dibuat (password: {DEMO_PASSWORD}). User ID untuk Decryption Center:")
         for username, uid in created:
             print(f"  {username:<10} {uid}")
     print("Buka http://127.0.0.1:5000")
-    app.run(host="127.0.0.1", port=5000, debug=False)
+    app.run(host="127.0.0.1", port=5000, debug=os.environ.get("FLASK_DEBUG") == "1")
