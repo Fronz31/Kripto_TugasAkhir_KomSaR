@@ -1,4 +1,4 @@
-{% extends 'base.html' %}{% from '_macros.html' import csrf, kind_badge, status_badge, recipients_input %}
+{% extends 'base.html' %}{% from '_macros.html' import csrf, kind_badge, status_badge, recipients_input, sent_table %}
 {% block title %}Pesan{% endblock %}
 {% block content %}
 <h1>Pesan</h1><div class="sub">Semua pesan dikirim sebagai ciphertext; gambar steganografi membawa kunci untuk penerima.</div>
@@ -21,8 +21,5 @@
     <a href="{{ url_for('decrypt.stego', delivery_id=i.delivery_id) }}">gambar steganografi</a>
     {% if i.status != 'decrypted' or (i.text is none and not i.file) %} · <a class="btn sm" href="{{ url_for('decrypt.center', d=i.delivery_id) }}">Dekripsi</a>{% endif %}</div></div>
 {% else %}<p class="note">Belum ada pesan masuk.</p>{% endfor %}</div>
-<div class="card"><h2>Terkirim</h2><div class="table-wrap"><table><tr><th>Jenis</th><th>Waktu</th><th>Penerima &amp; status</th><th>Gambar stego</th></tr>
-{% for m in sent %}<tr><td>{{ kind_badge(m) }}</td><td>{{ m.created_at|dt }}</td>
-<td>{% for r in m.recipients %}{{ r.username }} {{ status_badge(r.status) }} {% endfor %}</td><td>{{ m.recipients|length }} gambar (1 per penerima)</td></tr>
-{% else %}<tr><td colspan="4" class="note">Belum ada pengiriman.</td></tr>{% endfor %}</table></div></div>
+<div class="card"><h2>Terkirim</h2>{{ sent_table(sent) }}</div>
 {% endblock %}

@@ -9,7 +9,7 @@ from flask import abort, current_app, flash, g, jsonify, redirect, request, sess
 from ..auth.service import SESSION_KEY, current_user
 
 WIB = timezone(timedelta(hours=7))
-STATUS_LABELS = {"sent": "Terkirim", "delivered": "Diterima", "decrypted": "Sudah dibuka"}
+STATUS_LABELS = {"sent": "Terkirim", "delivered": "Diterima", "decrypted": "Sudah dibuka", "failed": "Gagal"}
 
 
 def svc():
@@ -73,6 +73,13 @@ def require_dongle():
         return jsonify(error="Dongle tidak terdeteksi. Sesi diakhiri."), 401
     flash("Dongle tidak terdeteksi. Colokkan dongle lalu login kembali.", "error")
     return redirect(url_for("auth.login"))
+
+
+def flash_partial_failure(message) -> None:
+    """Peringatan bila paket untuk sebagian penerima gagal dibuat (status `failed`)."""
+    failed = sum(d.status == "failed" for d in message.deliveries)
+    if failed:
+        flash(f"{failed} penerima gagal disiapkan; lihat status di kotak terkirim.", "error")
 
 
 def fmt_dt(iso) -> str:
