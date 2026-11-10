@@ -1,6 +1,7 @@
 """Manajemen pengguna: tambah, ubah, hapus, daftar, cari, resolusi username -> User ID."""
 import re
 import secrets
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import or_
 
@@ -13,6 +14,7 @@ from ..models.user import User
 _USERNAME_RE = re.compile(r"^[a-z0-9_.]{3,32}$")
 USER_ID_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"            # tanpa I, L, O, 0, 1 (mudah tertukar)
 USER_ID_LENGTH = 12                                              # 12 x log2(31) ~ 59 bit
+TEMP_PASSWORD_LENGTH = 12                                        # 12 x log2(31) ~ 59 bit
 
 
 def normalize_user_id(value: str) -> str:
@@ -60,6 +62,35 @@ def create_user(username, full_name, unit, password, is_admin=False) -> User:
     db.session.add(user)
     db.session.commit()
     return user
+
+
+def generate_temp_password() -> str:
+    """Password sementara (CSPRNG), ditampilkan sekali ke admin lalu wajib diganti saat login pertama."""
+    return "".join(secrets.choice(USER_ID_ALPHABET + USER_ID_ALPHABET.lower()) for _ in range(TEMP_PASSWORD_LENGTH))
+
+
+def require_enrollment(user: User, hours: int) -> None:
+    """Login pertama berikutnya wajib daftar suara + ganti password dalam `hours` jam."""
+    user.must_enroll = True
+    user.enroll_deadline = datetime.now(timezone.utc) + timedelta(hours=hours)
+    user.failed_logins, user.locked_until = 0, None
+    db.session.commit()
+
+
+def create_with_temp_password(username, full_name, unit, hours: int, is_admin=False) -> tuple[User, str]:
+    """Akun baru dengan password sementara. Return (user, password) — password ditampilkan sekali."""
+    password = generate_temp_password()
+    user = create_user(username, full_name, unit, password, is_admin=is_admin)
+    require_enrollment(user, hours)
+    return user, password
+
+
+def issue_temp_password(user: User, hours: int) -> str:
+    """Ganti password dengan password sementara baru + wajib daftar ulang (dipakai reset suara)."""
+    password = generate_temp_password()
+    user.password_hash = hash_password(password)
+    require_enrollment(user, hours)
+    return password
 
 
 def get_user(pk: int) -> User:

@@ -1,6 +1,7 @@
 {% extends 'base.html' %}{% from '_macros.html' import csrf %}
 {% block title %}Pengguna{% endblock %}
 {% block content %}
+{% include '_temp_password.html' %}
 <h1>Pengguna</h1><div class="sub">{{ 'Kelola akun pengguna. User ID hanya terlihat oleh admin.' if me.is_admin else 'Daftar pengguna (hanya admin yang dapat mengubah).' }}</div>
 <div class="card"><form method="get"><div class="row"><div><input type="text" name="q" value="{{ q }}" placeholder="Cari username, nama, atau unit"></div><div><button type="submit">Cari</button></div></div></form></div>
 <div class="card"><div class="table-wrap"><table><tr><th>Username</th>{% if me.is_admin %}<th>User ID</th>{% endif %}<th>Nama</th><th>Unit</th><th>Peran</th><th>Status</th>{% if me.is_admin %}<th></th>{% endif %}</tr>
@@ -12,8 +13,8 @@
 {% if me.is_admin %}<div class="card"><h2>Tambah pengguna</h2><form method="post" action="{{ url_for('users.add') }}">{{ csrf() }}
   <div class="row"><div><label>Username</label><input type="text" name="username" required></div><div><label>Unit/Satuan</label><input type="text" name="unit" required></div></div>
   <label>Nama lengkap</label><input type="text" name="full_name" required>
-  <label>Password (min. 8 karakter)</label><input type="password" name="password" autocomplete="new-password" required>
   <label><input type="checkbox" name="is_admin"> Jadikan admin</label>
-  <p class="note">User ID dibuat otomatis oleh sistem dan ditampilkan setelah pengguna ditambahkan.</p>
+  <p class="note">User ID dan password sementara dibuat otomatis oleh sistem dan ditampilkan sekali setelah pengguna ditambahkan.
+  Pengguna wajib mendaftarkan suara dan mengganti password saat login pertama.</p>
   <p><button type="submit">Tambah</button></p></form></div>{% endif %}
 {% endblock %}
