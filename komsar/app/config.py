@@ -3,6 +3,7 @@ import base64
 import os
 import re
 import secrets
+from datetime import timedelta
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -13,6 +14,10 @@ load_dotenv(BASE_DIR / ".env")
 
 def _int(name: str, default: int) -> int:
     return int(os.environ.get(name, default))
+
+
+def _flag(name: str, default: str) -> bool:
+    return os.environ.get(name, default).lower() in ("1", "true", "yes")
 
 
 def database_url(url) -> str:
@@ -39,8 +44,8 @@ class Config:
     ARGON2_MEMORY_KIB = _int("ARGON2_MEMORY_KIB", 65536)
     ARGON2_PARALLELISM = _int("ARGON2_PARALLELISM", 2)
 
-    # Wajib dongle selama sesi (heartbeat). Dinyalakan setelah alur login dongle selesai.
-    KOMSAR_REQUIRE_DONGLE = os.environ.get("KOMSAR_REQUIRE_DONGLE", "0").lower() in ("1", "true", "yes")
+    # Wajib dongle saat login (langkah 1) dan selama sesi (heartbeat). Matikan (0) hanya untuk development.
+    KOMSAR_REQUIRE_DONGLE = _flag("KOMSAR_REQUIRE_DONGLE", "1")
     DONGLE_HEARTBEAT_TIMEOUT = _int("DONGLE_HEARTBEAT_TIMEOUT", 60)    # detik
     DONGLE_CHECK_RATE_PER_MIN = 30                                      # per IP, /api/dongle/check
 
@@ -52,6 +57,8 @@ class Config:
 
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
+    SESSION_COOKIE_SECURE = _flag("KOMSAR_COOKIE_SECURE", "1")      # 0 hanya untuk development lewat http
+    PERMANENT_SESSION_LIFETIME = timedelta(hours=8)
     TESTING = False
 
 
@@ -65,8 +72,9 @@ class TestConfig(Config):
     ARGON2_MEMORY_KIB = 64
     ARGON2_PARALLELISM = 1
     MAX_FILE_BYTES = 1024 * 1024
-    KOMSAR_REQUIRE_DONGLE = False
+    KOMSAR_REQUIRE_DONGLE = False          # test khusus dongle menyalakannya sendiri
     VOICE_BACKEND = "fake"
+    SESSION_COOKIE_SECURE = False
 
 
 def load_db_master_key(config) -> bytes:
