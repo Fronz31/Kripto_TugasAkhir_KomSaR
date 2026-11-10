@@ -1,17 +1,24 @@
 # KomSaR — Komunikasi Satuan Rakyat
 
-## Cara menjalankan (di browser)
+## Cara menjalankan lokal (mode development, di browser)
+Login normal butuh aplikasi desktop (dongle + mikrofon). Untuk mencoba di browser biasa, matikan dongle dan
+pakai backend suara palsu; langkah suara lalu dilewati **hanya** bila `VOICE_BACKEND=fake` **dan** mode debug:
 ```
 pip install -r requirements.txt
+# PowerShell:
+$env:KOMSAR_REQUIRE_DONGLE="0"; $env:KOMSAR_COOKIE_SECURE="0"; $env:VOICE_BACKEND="fake"
+$env:FLASK_DEBUG="1"; $env:KOMSAR_SEED_DEMO="1"
 python run.py
 ```
-Lalu buka **http://127.0.0.1:5000**. Pertama kali dijalankan, `run.py` otomatis membuat `.env` (kunci acak) dan akun contoh
-(password semua: `komsar123`): `admin01` (admin), `andi01`, `budi01`, `citra01`, `deni01`. User ID-nya acak (`XXXX-XXXX-XXXX`)
-dan dicetak di konsol saat dibuat; admin juga melihatnya di menu Pengguna. Hapus/ganti akun ini sebelum dipakai sungguhan.
+Lalu buka **http://127.0.0.1:5000**. Pertama kali dijalankan, `run.py` otomatis membuat `.env` (kunci acak). Dengan
+`KOMSAR_SEED_DEMO=1` dibuat akun contoh (password semua: `komsar123`): `admin01` (admin), `andi01`, `budi01`, `citra01`,
+`deni01`. User ID-nya acak (`XXXX-XXXX-XXXX`) dan dicetak di konsol saat dibuat; admin juga melihatnya di menu Pengguna.
+Jangan pernah memakai kelima variabel di atas di server produksi.
 Alur dekripsi: gambar steganografi tampil → penerima input User ID → kunci hasil ekstraksi ditampilkan → penerima mengetik
 ulang kunci itu → sistem menggabungkan ID + kunci → data terbuka. User ID tidak ditampilkan ke pengguna (hanya admin yang
 melihatnya di menu Pengguna dan menyampaikannya ke pemiliknya).
-Login memakai username + password saja (biometrik & dongle belum ada). Jalankan test dengan `python -m pytest -q`.
+Login memakai tiga faktor: password + dongle flashdisk + suara (lihat **Alur login**). Jalankan test dengan
+`python -m pytest -q`.
 
 Aplikasi komunikasi aman antarsatuan (Flask): super encryption, steganografi LSB, file terenkripsi, blockchain sederhana.
 
@@ -30,12 +37,51 @@ python -m pytest -q
 | `KOMSAR_DB_MASTER_KEY` | (wajib) | 32 byte base64, lapisan enkripsi pesan penting di database |
 | `DATABASE_URL` | SQLite `instance/komsar.db` | Neon: `postgresql://user:pass@host/db?sslmode=require` (otomatis memakai driver psycopg) |
 | `MAX_FILE_MB` | `10` | batas ukuran file; file disimpan di database |
-| `KOMSAR_REQUIRE_DONGLE` | `0` | `1` = setiap request butuh heartbeat dongle; sesi diakhiri bila heartbeat kedaluwarsa |
+| `KOMSAR_REQUIRE_DONGLE` | `1` | login butuh dongle dan setiap request butuh heartbeat dongle; `0` hanya untuk development |
+| `KOMSAR_COOKIE_SECURE` | `1` | cookie sesi hanya lewat HTTPS; `0` hanya untuk development lewat `http://127.0.0.1` |
+| `KOMSAR_SEED_DEMO` | `0` | `1` = `run.py` membuat akun contoh (development) |
+| `VOICE_BACKEND` | `speechbrain` | `fake` hanya untuk test/development; bersama `FLASK_DEBUG=1` langkah suara dilewati |
+| `ENROLL_WINDOW_HOURS` | `24` | batas waktu login pertama (daftar suara + ganti password) |
 | `DONGLE_HEARTBEAT_TIMEOUT` | `60` | detik sejak heartbeat dongle terakhir sebelum sesi dikunci |
 
 Semua data (pengguna, pesan, ciphertext file, gambar steganografi, blok blockchain) disimpan di database dan
 bertahan saat server restart. Tabel dibuat otomatis (`db.create_all()`). Database SQLite lama dari versi
 sebelumnya perlu dihapus (`instance/komsar.db`) karena tabel `users` dan `audit_logs` mendapat kolom baru.
+
+## Alur login
+```
+[1] /login          username + password + bukti dongle (dibaca aplikasi desktop)
+        | lolos -> sesi sementara (pending), berlaku 3 menit, BELUM login
+        |-- akun baru / suara di-reset (must_enroll) -> [2b] /login/enroll
+        |-- punya profil suara                       -> [2a] /login/voice
+        '-- tidak keduanya                           -> ditolak (hubungi admin)
+[2a] /login/voice   ucapkan kalimat acak -> verifikasi suara -> dashboard
+[2b] /login/enroll  ganti password sementara, lalu rekam 3 kalimat acak -> dashboard
+```
+- Halaman login hanya berfungsi di aplikasi desktop KomSaR (`window.pywebview`). Di browser biasa muncul
+  "Gunakan aplikasi desktop KomSaR" dan tombol login dinonaktifkan.
+- Pesan galat selalu sama: "Username, password, atau dongle tidak valid". Alasan sebenarnya
+  (`password`, `dongle`, `locked`, `expired`) hanya dicatat di audit log.
+- **Lockout**: 5 kali password salah, atau 3 kali suara salah dalam satu sesi login (maks. 5 kegagalan gabungan
+  sebelum login berhasil), akun dikunci 15 menit (`account_locked`). Login berhasil me-reset hitungan.
+- **Login pertama**: admin menambah pengguna tanpa mengetik password; sistem membuat password sementara
+  12 karakter yang ditampilkan **sekali** ke admin. Pemilik akun harus login dalam `ENROLL_WINDOW_HOURS` jam,
+  mengganti password (min. 8 karakter, berbeda dari password sementara), lalu merekam 3 sampel suara. Lewat
+  batas waktu, login ditolak sampai admin menekan **Reset suara** (yang juga membuat password sementara baru).
+  Pengguna tidak bisa mendaftar ulang suara sendiri.
+- Sesi penuh: cookie `Secure`, `HttpOnly`, `SameSite=Lax`, umur maks. 8 jam. Logout menghapus seluruh sesi.
+
+### Bootstrap admin pertama
+Jalankan di laptop admin (Windows, flashdisk tercolok) dengan `.env` yang sama dengan server (`DATABASE_URL` Neon):
+```
+flask --app run komsar bootstrap-admin
+# non-interaktif:
+flask --app run komsar bootstrap-admin --username admin01 --full-name "Administrator" --drive E:\ --label "Dongle 1"
+```
+Perintah ini membuat akun admin (`must_enroll`, password sementara dicetak sekali), mendaftarkan flashdisk
+yang dipilih, dan menulis `KOMSAR.DONGLE` ke flashdisk itu. Suara **tidak** direkam di CLI: admin mendaftarkan
+suara saat login pertama di aplikasi desktop, sama seperti pengguna lain. Perintah menolak bila sudah ada admin,
+kecuali diberi `--force`.
 
 ## Halaman Aplikasi
 | Halaman | Akses | Isi |
@@ -53,7 +99,8 @@ sebelumnya perlu dihapus (`instance/komsar.db`) karena tabel `users` dan `audit_
 | `/admin/dongles` | admin | daftar & nonaktifkan dongle |
 | `/admin/audit` | admin | audit log, filter pengguna & aksi, 50 baris/halaman |
 
-Audit log (`app/services/audit_service.py`, nama aksi di `ACTIONS`) mencatat login sukses/gagal, logout,
+Audit log (`app/services/audit_service.py`, nama aksi di `ACTIONS`) mencatat login sukses/gagal (beserta
+alasan), langkah 1 login, verifikasi/pendaftaran/reset suara, ganti password, penguncian akun, logout,
 pengiriman, dekripsi sukses/gagal, kegagalan integritas aset, aksi admin, serta daftar/nonaktif dongle,
 lengkap dengan IP dan `dongle_id` sesi. Log tidak pernah berisi plaintext, kunci rahasia, User ID, token
 dongle, atau password. Bila paket untuk satu penerima gagal dibuat, paket itu berstatus `failed` dan
@@ -78,7 +125,7 @@ Mendaftarkan dongle (admin, wajib lewat aplikasi desktop `desktop/`):
 
 Endpoint: `POST /api/dongle/check` (tanpa login, dipakai klien desktop, dibatasi 30 request/menit per IP),
 `POST /api/dongle/register` (admin), `POST /api/dongle/heartbeat` (dikirim halaman tiap 30 detik).
-Penegakan heartbeat aktif bila `KOMSAR_REQUIRE_DONGLE=1`.
+Bukti dongle wajib saat login dan heartbeat ditegakkan selama sesi bila `KOMSAR_REQUIRE_DONGLE=1` (default).
 
 ## Verifikasi suara
 Model `speechbrain/spkrec-ecapa-voxceleb` mengubah rekaman menjadi embedding, lalu dibandingkan dengan
@@ -95,9 +142,11 @@ tetap tanpa torch, dan test memakai `VOICE_BACKEND=fake`. Model dimuat sekali pe
 - Reset: admin menekan **Reset suara** di halaman edit pengguna. Profil dihapus, akun `must_enroll` dengan
   batas waktu `ENROLL_WINDOW_HOURS` (default 24 jam).
 
-Endpoint (login + header `X-CSRF-Token`): `POST /api/voice/challenge` `{purpose: "enroll"|"verify"}`,
-`POST /api/voice/enroll` `{samples: [{challenge_id, wav_b64}] x3}`, `POST /api/voice/verify`
-`{challenge_id, wav_b64}` -> `{ok}`. Helper halaman: `static/voice.js` (`komsarVoice.enroll/verify`).
+Endpoint (hanya sesi login pending + header `X-CSRF-Token`): `POST /api/voice/challenge`
+`{purpose: "enroll"|"verify"}`, `POST /api/voice/enroll` `{samples: [{challenge_id, wav_b64}] x3}`,
+`POST /api/voice/verify` `{challenge_id, wav_b64}` -> `{ok}`. `verify` hanya untuk akun yang punya profil suara,
+`enroll` hanya untuk akun `must_enroll` yang sudah mengganti password sementara. Bila `ok`, server langsung
+menyelesaikan login. Helper halaman: `static/voice.js` (`komsarVoice.enroll/verify`), dipakai `static/login.js`.
 
 ## Pemakaian service (contoh)
 ```python

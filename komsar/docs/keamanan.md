@@ -28,3 +28,15 @@
    sementara sebelum pemilik akun bisa mendaftarkan suaranya sendiri lebih dulu, dan setelah itu pemilik asli
    ditolak. Mitigasi: password sementara diserahkan langsung, batas waktu pendaftaran (`ENROLL_WINDOW_HOURS`)
    pendek, pendaftaran dicatat di audit log, dan hanya admin yang bisa me-reset suara.
+8. **Password sementara.** Dibuat sistem (`secrets`, 12 karakter, ±59 bit) saat admin menambah pengguna,
+   menekan Reset suara, atau menjalankan `bootstrap-admin`. Password ditampilkan sekali di halaman hasil
+   (tidak lewat flash/cookie) atau di konsol CLI, tidak dicatat di audit log, dan harus diganti sebelum
+   pendaftaran suara. Admin tetap melihatnya, jadi admin secara teknis bisa mendahului pemilik akun (poin 7).
+9. **Lockout per akun bisa dipakai untuk mengganggu (DoS).** Siapa pun yang tahu username dapat mengunci akun
+   15 menit dengan 5 password salah. Hitungan suara per sesi login disimpan di cookie sesi; batas gabungan
+   5 kegagalan di database mencegah reset hitungan dengan mengulang langkah 1.
+10. **Mode development** (`VOICE_BACKEND=fake` + `FLASK_DEBUG=1`) melewati langkah suara, dan
+    `KOMSAR_REQUIRE_DONGLE=0` melewati dongle. Konfigurasi produksi (default) tidak pernah memenuhi keduanya;
+    jangan set variabel itu di server.
+11. **Bukti dongle saat login diambil dari langkah 1.** Setelah langkah suara selesai, sesi dianggap baru
+    melihat dongle; heartbeat aplikasi desktop berikutnya (tiap 30 detik) yang memastikan dongle masih tercolok.
