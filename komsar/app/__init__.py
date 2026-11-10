@@ -29,12 +29,12 @@ def create_app(config_class=Config) -> Flask:
 
     app.config.setdefault("MAX_CONTENT_LENGTH", app.config["MAX_FILE_BYTES"] + 2 * 1024 * 1024)
     db.init_app(app)
-    from .models import security, user  # noqa: F401  (daftarkan model)
+    from .blockchain import store  # noqa: F401  (daftarkan model)
+    from .models import records, security, user  # noqa: F401
+    from .services.container import build_services
     with app.app_context():
         db.create_all()
-
-    from .services.container import build_services
-    app.extensions["komsar"] = build_services(app)
+        app.extensions["komsar"] = build_services(app)      # blok genesis dibuat di DB bila belum ada
     from .routes import register_routes
     register_routes(app)
     return app
