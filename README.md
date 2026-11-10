@@ -216,13 +216,18 @@ Gunakan gambar yang cukup besar agar kapasitas penyisipan memadai.
 
 Password semua akun: `komsar123`
 
-| Username | User ID | Peran |
-|---|---|---|
-| `admin01` | ADM1 | Admin |
-| `andi01` | A001 | Pengguna (Unit A) |
-| `budi01` | B001 | Pengguna (Unit B) |
-| `citra01` | C001 | Pengguna (Unit C) |
-| `deni01` | D001 | Pengguna (Unit D) |
+| Username | Peran |
+|---|---|
+| `admin01` | Admin |
+| `andi01` | Pengguna (Unit A) |
+| `budi01` | Pengguna (Unit B) |
+| `citra01` | Pengguna (Unit C) |
+| `deni01` | Pengguna (Unit D) |
+
+User ID dibuat **acak** oleh sistem (format `XXXX-XXXX-XXXX`, mis. `K7QX-92MF-TR4D`), jadi berbeda di tiap
+database. ID akun contoh dicetak di konsol saat `run.py` pertama kali membuatnya, dan selalu bisa dilihat admin
+di menu **Pengguna** (halaman Edit). Admin dapat membuat ulang ID; pesan yang dikirim untuk ID lama tidak dapat
+dibuka lagi.
 
 > Hapus atau ganti akun ini sebelum dipakai sungguhan. User ID tidak ditampilkan kepada pengguna biasa;
 > admin melihatnya di menu **Pengguna** dan menyampaikannya kepada pemiliknya.
@@ -230,7 +235,8 @@ Password semua akun: `komsar123`
 ### Mencoba alur lengkap
 1. Login sebagai `andi01` → **Chat** → kirim pesan ke `budi01` dengan kunci rahasia, misalnya `K123`.
 2. Logout, login sebagai `budi01` → **Decryption Center**.
-3. Pilih pesan, masukkan User ID `B001` → kunci tampil → ketik ulang kunci → pesan terbuka.
+3. Pilih pesan, masukkan User ID milik `budi01` (lihat konsol atau menu Pengguna admin; huruf kecil dan tanpa
+   tanda `-` juga diterima) → kunci tampil → ketik ulang kunci → pesan terbuka.
 
 ---
 
@@ -286,7 +292,7 @@ msg = svc.messaging.send_text(sender, ["budi01", "citra01"], "Halo", "K123", imp
 inbox = svc.messaging.inbox(budi)
 
 # Dekripsi: ID penerima (+ kunci rahasia)
-res = svc.decryption.open(budi, inbox[0]["delivery_id"], "B001")
+res = svc.decryption.open(budi, inbox[0]["delivery_id"], budi.user_id)
 print(res.text)
 ```
 
@@ -335,9 +341,9 @@ autentikasi apa pun sampai benar-benar diimplementasikan.
 
 Rinciannya ada di [`docs/keamanan.md`](docs/keamanan.md). Ringkasnya:
 
-1. **User ID bukan rahasia yang kuat.** ID (mis. `A001`, `B001`) mudah ditebak. Siapa pun yang memegang
-   gambar stego dan dapat menebak ID penerima dapat mengekstrak kunci rahasia. Argon2id memperlambat
-   penebakan tetapi tidak menghilangkannya.
+1. **User ID acak, tetapi tetap bukan kata sandi.** ID 12 karakter acak (±59 bit) sehingga tidak bisa ditebak
+   seperti `B001` dulu. Namun ID diketahui admin dan disimpan apa adanya di database, sehingga pihak yang
+   membaca database atau mendapat ID yang bocor dan memegang gambar stego tetap bisa mengekstrak kunci rahasia.
 2. **Blockchain bersifat *tamper-evident*, bukan *tamper-proof*.** Perubahan, penyisipan, dan penghapusan
    di tengah rantai terdeteksi. Namun pihak yang bisa menulis ke penyimpanan **dan** menghitung ulang seluruh
    hash setelah blok yang diubah dapat membuat rantai tampak konsisten. Tidak ada Proof-of-Work dan
