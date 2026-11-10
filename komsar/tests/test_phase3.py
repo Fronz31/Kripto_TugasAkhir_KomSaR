@@ -149,3 +149,51 @@ def test_audit_page_admin_only_filter_and_pagination(web):
     assert ">x<" in filtered and ">m1<" not in filtered
     by_action = html(admin.get("/admin/audit?action=send_text&page=2"))
     assert ">m0<" in by_action and ">x<" not in by_action
+
+
+# ---------- percakapan & riwayat file ----------
+def test_conversation_two_way_ciphertext_only(web):
+    andi, budi = login(web, "andi01"), login(web, "budi01")
+    post(andi, "/chat/send", {"recipients": "budi01", "message": "Pesan satu", "secret": SECRET})
+    post(budi, "/chat/send", {"recipients": "andi01", "message": "Balasan dua", "secret": SECRET})
+    post(andi, "/chat/send", {"recipients": "citra01", "message": "Untuk citra", "secret": SECRET})
+    page = html(andi.get("/chat/budi01"))
+    assert "Percakapan dengan Budi" in page and page.count('class="msg') == 2
+    assert "Pesan satu" not in page and "Balasan dua" not in page and "Terenkripsi" in page
+    assert page.index("Anda → budi01") < page.index("dari budi01")                # urut waktu
+    did = delivery_id(web, "andi01")
+    assert f"/decrypt?d={did}" in page and page.count("Buka</a>") == 1           # Buka hanya untuk pesan masuk
+    assert "/chat/budi01" in html(andi.get("/chat")) and "/chat/andi01" in html(budi.get("/chat"))
+    assert "/chat/budi01" in html(andi.get("/users/"))
+
+
+def test_conversation_requires_login_and_unknown_user(web):
+    assert web.test_client().get("/chat/budi01").status_code == 302
+    andi = login(web, "andi01")
+    assert andi.get("/chat/tidakada").status_code == 404
+    assert andi.get("/chat/andi01").status_code == 302
+
+
+def test_conversation_is_only_own(web):
+    andi, citra = login(web, "andi01"), login(web, "citra01")
+    post(andi, "/chat/send", {"recipients": "budi01", "message": "Halo", "secret": SECRET})
+    assert "Belum ada pesan" in html(citra.get("/chat/budi01"))                  # citra tidak melihat andi<->budi
+
+
+def test_files_history_sent_and_received(web):
+    andi, budi = login(web, "andi01"), login(web, "budi01")
+    upload(andi, ["budi01"], "laporan.pdf", b"%PDF-1.7 isi", "file")
+    upload(budi, ["citra01"], "kontrak.pdf", os.urandom(500), "asset")
+    post(andi, "/chat/send", {"recipients": "budi01", "message": "teks saja", "secret": SECRET})
+    page = html(budi.get("/files"))
+    assert "laporan.pdf" in page and "kontrak.pdf" in page and "Diterima" in page and "Terkirim" in page
+    assert "Aset Penting" in page and page.count("Buka</a>") == 1 and "teks saja" not in page
+    assert "Riwayat File" in page
+    a = html(andi.get("/files"))
+    assert "laporan.pdf" in a and "kontrak.pdf" not in a
+    assert "Belum ada file" in html(login(web, "admin01").get("/files"))
+
+
+def test_blockchain_records_admin_only(web):
+    assert login(web, "budi01").get("/admin/chain").status_code == 403
+    assert login(web, "admin01").get("/admin/chain").status_code == 200
