@@ -7,9 +7,10 @@ from functools import wraps
 from flask import abort, current_app, flash, g, jsonify, redirect, request, session, url_for
 
 from ..auth.service import SESSION_KEY, current_user
+from ..services.audit_service import SEND_ASSET, SEND_FILE, SEND_TEXT, audit
 
 WIB = timezone(timedelta(hours=7))
-STATUS_LABELS = {"sent": "Terkirim", "delivered": "Diterima", "decrypted": "Sudah dibuka"}
+STATUS_LABELS = {"sent": "Terkirim", "delivered": "Diterima", "decrypted": "Sudah dibuka", "failed": "Gagal"}
 
 
 def svc():
@@ -73,6 +74,15 @@ def require_dongle():
         return jsonify(error="Dongle tidak terdeteksi. Sesi diakhiri."), 401
     flash("Dongle tidak terdeteksi. Colokkan dongle lalu login kembali.", "error")
     return redirect(url_for("auth.login"))
+
+
+def after_send(message) -> None:
+    """Catat pengiriman di audit log dan beri peringatan bila sebagian paket penerima gagal (status `failed`)."""
+    failed = sum(d.status == "failed" for d in message.deliveries)
+    action = {"text": SEND_TEXT, "important_text": SEND_TEXT, "asset": SEND_ASSET}.get(message.kind, SEND_FILE)
+    audit(action, target=message.id, kind=message.kind, recipients=len(message.deliveries), failed=failed)
+    if failed:
+        flash(f"{failed} penerima gagal disiapkan; lihat status di kotak terkirim.", "error")
 
 
 def fmt_dt(iso) -> str:

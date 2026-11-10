@@ -1,4 +1,4 @@
-"""Tabel untuk dongle, profil suara, dan audit log. Baru model; logikanya dikerjakan di fase berikutnya."""
+"""Tabel untuk dongle, profil suara, dan audit log (logika audit: services/audit_service.py)."""
 from datetime import datetime, timezone
 
 from ..extensions import db
@@ -35,9 +35,12 @@ class AuditLog(db.Model):
     __tablename__ = "audit_logs"
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     action = db.Column(db.String(64), nullable=False, index=True)
     target = db.Column(db.String(255), nullable=True)
     ip = db.Column(db.String(45), nullable=True)
     dongle_id = db.Column(db.String(36), nullable=True)
+    meta = db.Column(db.JSON, nullable=True)                             # detail non-rahasia (jenis, alasan, jumlah)
     created_at = db.Column(db.DateTime(timezone=True), default=_now, nullable=False, index=True)
+
+    user = db.relationship("User")      # tanpa backref: hapus user -> DB mengisi NULL (ondelete)

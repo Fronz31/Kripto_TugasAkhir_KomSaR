@@ -4,7 +4,7 @@
 <h1>Pengguna</h1><div class="sub">{{ 'Kelola akun pengguna. User ID hanya terlihat oleh admin.' if me.is_admin else 'Daftar pengguna (hanya admin yang dapat mengubah).' }}</div>
 <div class="card"><form method="get"><div class="row"><div><input type="text" name="q" value="{{ q }}" placeholder="Cari username, nama, atau unit"></div><div><button type="submit">Cari</button></div></div></form></div>
 <div class="card"><div class="table-wrap"><table><tr><th>Username</th>{% if me.is_admin %}<th>User ID</th>{% endif %}<th>Nama</th><th>Unit</th><th>Peran</th><th>Status</th>{% if me.is_admin %}<th></th>{% endif %}</tr>
-{% for u in users %}<tr><td>{{ u.username }}</td>{% if me.is_admin %}<td>{{ u.user_id }}</td>{% endif %}<td>{{ u.full_name }}</td><td>{{ u.unit }}</td><td>{{ 'Admin' if u.is_admin else 'User' }}</td>
+{% for u in users %}<tr><td>{% if u.id != me.id %}<a href="{{ url_for('chat.conversation', username=u.username) }}" title="Percakapan">{{ u.username }}</a>{% else %}{{ u.username }}{% endif %}</td>{% if me.is_admin %}<td>{{ u.user_id }}</td>{% endif %}<td>{{ u.full_name }}</td><td>{{ u.unit }}</td><td>{{ 'Admin' if u.is_admin else 'User' }}</td>
 <td>{{ 'Aktif' if u.is_active else 'Nonaktif' }}</td>
 {% if me.is_admin %}<td><a class="btn ghost sm" href="{{ url_for('users.edit', pk=u.id) }}">Edit</a>
 <form class="inline" method="post" action="{{ url_for('users.delete', pk=u.id) }}" data-confirm="Hapus pengguna {{ u.username }}?">{{ csrf() }}<button class="btn danger sm" type="submit">Hapus</button></form></td>{% endif %}</tr>

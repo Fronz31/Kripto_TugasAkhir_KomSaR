@@ -35,7 +35,29 @@ python -m pytest -q
 
 Semua data (pengguna, pesan, ciphertext file, gambar steganografi, blok blockchain) disimpan di database dan
 bertahan saat server restart. Tabel dibuat otomatis (`db.create_all()`). Database SQLite lama dari versi
-sebelumnya perlu dihapus (`instance/komsar.db`) karena tabel `users` mendapat kolom baru.
+sebelumnya perlu dihapus (`instance/komsar.db`) karena tabel `users` dan `audit_logs` mendapat kolom baru.
+
+## Halaman Aplikasi
+| Halaman | Akses | Isi |
+|---|---|---|
+| `/dashboard` | login | ringkasan |
+| `/chat` | login | kirim pesan, kotak masuk, kotak terkirim (status per penerima, termasuk `Gagal`) |
+| `/chat/<username>` | login | percakapan dua arah dengan satu pengguna, urut waktu, hanya ciphertext + tombol "Buka" |
+| `/transfer` | login | kirim file/gambar/aset penting + daftar file terkirim beserta status |
+| `/files` | login | riwayat file/gambar/aset yang dikirim dan diterima |
+| `/assets` | login | aset penting + status integritas blockchain |
+| `/decrypt` | login | Decryption Center (ID -> kunci stego -> dekripsi) |
+| `/users/` | login (ubah: admin) | daftar pengguna, tautan percakapan; admin: tambah/ubah/hapus/regenerate ID |
+| `/profile` | login | ganti password |
+| `/admin/chain` | admin | Blockchain Records |
+| `/admin/dongles` | admin | daftar & nonaktifkan dongle |
+| `/admin/audit` | admin | audit log, filter pengguna & aksi, 50 baris/halaman |
+
+Audit log (`app/services/audit_service.py`, nama aksi di `ACTIONS`) mencatat login sukses/gagal, logout,
+pengiriman, dekripsi sukses/gagal, kegagalan integritas aset, aksi admin, serta daftar/nonaktif dongle,
+lengkap dengan IP dan `dongle_id` sesi. Log tidak pernah berisi plaintext, kunci rahasia, User ID, token
+dongle, atau password. Bila paket untuk satu penerima gagal dibuat, paket itu berstatus `failed` dan
+penerima lain tetap terkirim.
 
 ## Status
 - Tahap 2 (modul inti): crypto, stego, auth, user management — selesai

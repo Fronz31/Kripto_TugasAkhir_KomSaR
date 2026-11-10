@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block title %}Audit Log{% endblock %}
+{% block content %}
+<h1>Audit Log</h1><div class="sub">Catatan aktivitas (terbaru di atas). Tidak berisi plaintext, kunci, User ID, maupun token dongle.</div>
+<div class="card"><form method="get"><div class="row">
+  <div><label>Username</label><input type="text" name="username" value="{{ username }}" placeholder="mis. budi01"></div>
+  <div><label>Aksi</label><select name="action"><option value="">Semua aksi</option>
+    {% for a in actions %}<option value="{{ a }}"{% if a == action %} selected{% endif %}>{{ a }}</option>{% endfor %}</select></div>
+  <div><label>&nbsp;</label><button type="submit">Filter</button></div></div></form></div>
+<div class="card"><div class="table-wrap"><table><tr><th>Waktu</th><th>Pengguna</th><th>Aksi</th><th>Target</th><th>Detail</th><th>IP</th><th>Dongle</th></tr>
+{% for r in page.items %}<tr><td>{{ r.created_at|dt }}</td><td>{{ r.user.username if r.user else '-' }}</td><td>{{ r.action }}</td>
+<td>{{ r.target or '-' }}</td><td>{% if r.meta %}{% for k, v in r.meta.items() %}{{ k }}={{ v }}{% if not loop.last %}, {% endif %}{% endfor %}{% else %}-{% endif %}</td>
+<td>{{ r.ip or '-' }}</td><td>{{ r.dongle_id[:8] if r.dongle_id else '-' }}</td></tr>
+{% else %}<tr><td colspan="7" class="note">Belum ada catatan.</td></tr>{% endfor %}</table></div>
+<p class="note">Halaman {{ page.page }} dari {{ page.pages or 1 }} ({{ page.total }} catatan)
+{% if page.has_prev %} · <a href="{{ url_for('admin.audit_log', username=username, action=action, page=page.prev_num) }}">Sebelumnya</a>{% endif %}
+{% if page.has_next %} · <a href="{{ url_for('admin.audit_log', username=username, action=action, page=page.next_num) }}">Berikutnya</a>{% endif %}</p></div>
+{% endblock %}

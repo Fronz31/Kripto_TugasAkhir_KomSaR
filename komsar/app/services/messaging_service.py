@@ -20,7 +20,7 @@ from ..crypto.text import encrypt_text
 from ..errors import FileTooLargeError, UserNotFoundError, ValidationError
 from ..extensions import db
 from ..models.records import (KIND_ASSET, KIND_FILE, KIND_IMAGE, KIND_IMPORTANT_TEXT, KIND_TEXT,
-                              STATUS_DELIVERED, STATUS_SENT, DeliveryRecord, FileRecord,
+                              STATUS_DELIVERED, STATUS_FAILED, STATUS_SENT, DeliveryRecord, FileRecord,
                               MessageRecord)
 from ..models.user import User
 from ..stego.cover import pick_random_cover
@@ -104,7 +104,7 @@ class MessagingService:
 
     # ---- tampilan chat -----------------------------------------------------
     def inbox(self, user: User) -> list[dict]:
-        deliveries = self.repo.inbox(user.id)
+        deliveries = [d for d in self.repo.inbox(user.id) if d.status != STATUS_FAILED]   # paket gagal tidak bisa dibuka
         for d in deliveries:
             if d.status == STATUS_SENT:
                 d.status = STATUS_DELIVERED
@@ -119,8 +119,43 @@ class MessagingService:
                 "message_id": m.id, "kind": m.kind, "label": KIND_LABELS[m.kind],
                 "is_important": m.important,
                 "created_at": m.created_at.isoformat(), "encrypted": True,
-                "recipients": [{"username": db.session.get(User, d.recipient_pk).username, "status": d.status}
+                "recipients": [{"username": db.session.get(User, d.recipient_pk).username, "status": d.status,
+                                "error": d.error}
                                for d in self.repo.deliveries_for_message(m.id)],
+            })
+        return out
+
+    def conversation(self, user: User, other: User) -> list[dict]:
+        """Pesan dua arah user <-> other, urut waktu. Hanya ciphertext; isi dibuka lewat Decryption Center."""
+        items = []
+        for d in self.repo.conversation(user.id, other.id):
+            m, incoming = d.message, d.recipient_pk == user.id
+            if incoming and d.status == STATUS_SENT:
+                d.status = STATUS_DELIVERED
+            items.append({
+                "delivery_id": d.id, "incoming": incoming, "kind": m.kind, "label": KIND_LABELS[m.kind],
+                "is_important": m.important, "created_at": m.created_at.isoformat(), "status": d.status,
+                "error": d.error, "file": {"name": m.file.original_name, "size": m.file.plaintext_size} if m.file else None,
+                "cipher_preview": m.ciphertext[:24].hex() if m.ciphertext else None,
+            })
+        db.session.commit()
+        return items
+
+    def file_history(self, user: User) -> list[dict]:
+        """File/gambar/aset yang dikirim dan diterima user (tanpa isi)."""
+        out = []
+        for m in self.repo.file_messages(user.id):
+            sent = m.sender_pk == user.id
+            mine = [d for d in m.deliveries if sent or d.recipient_pk == user.id]
+            out.append({
+                "name": m.file.original_name, "size": m.file.plaintext_size, "kind": m.kind,
+                "label": KIND_LABELS[m.kind], "is_important": m.important, "sent": sent,
+                "created_at": m.created_at.isoformat(),
+                "delivery_id": None if sent else mine[0].id,
+                "counterparts": [{"username": db.session.get(User, d.recipient_pk).username, "status": d.status,
+                                  "error": d.error} for d in mine] if sent else
+                                [{"username": db.session.get(User, m.sender_pk).username, "status": mine[0].status,
+                                  "error": None}],
             })
         return out
 
@@ -166,13 +201,22 @@ class MessagingService:
         return recipients
 
     def _build_deliveries(self, message_id, recipients, secret_b, cek) -> list[DeliveryRecord]:
-        deliveries = []
+        """Satu paket per penerima. Paket yang gagal dibuat ditandai `failed`; bila semua gagal, error diteruskan."""
+        deliveries, errors = [], []
         for r in recipients:
-            rid = r.user_id                                        # ID dari database, bukan input pengirim
-            wrapped = wrap_cek(secret_b, rid, cek)
-            deliveries.append(DeliveryRecord(
-                id=_new_id(), message_id=message_id, recipient_pk=r.id, kdf_salt=wrapped.salt,
-                wrapped_key=wrapped.blob, stego_png=embed_key(pick_random_cover(self.covers_dir), rid, secret_b)))
+            d = DeliveryRecord(id=_new_id(), message_id=message_id, recipient_pk=r.id, status=STATUS_SENT)
+            try:
+                rid = r.user_id                                    # ID dari database, bukan input pengirim
+                wrapped = wrap_cek(secret_b, rid, cek)
+                d.kdf_salt, d.wrapped_key = wrapped.salt, wrapped.blob
+                d.stego_png = embed_key(pick_random_cover(self.covers_dir), rid, secret_b)
+            except Exception as exc:      # satu penerima gagal tidak boleh menggagalkan penerima lain
+                errors.append(exc)
+                d.kdf_salt, d.wrapped_key, d.stego_png = b"", b"", None
+                d.status, d.error = STATUS_FAILED, f"Gagal menyiapkan paket penerima ({type(exc).__name__})."
+            deliveries.append(d)
+        if len(errors) == len(recipients):
+            raise errors[0]
         return deliveries
 
     def _read_source(self, source) -> bytes:

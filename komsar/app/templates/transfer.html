@@ -1,4 +1,4 @@
-{% extends 'base.html' %}{% from '_macros.html' import csrf, recipients_input %}
+{% extends 'base.html' %}{% from '_macros.html' import csrf, recipients_input, sent_table %}
 {% block title %}Kirim File{% endblock %}
 {% block content %}
 <h1>Kirim File</h1><div class="sub">File dan gambar dienkripsi sebelum disimpan. Maksimal {{ max_mb }} MB.</div>
@@ -10,4 +10,5 @@
   <p class="note">Dokumen: pdf, doc(x), xls(x), ppt(x), txt, csv, rtf, odt/ods/odp, zip. Gambar: png, jpg, gif, bmp, webp. Aset penting dicatat di blockchain.</p>
   <p><button type="submit">Enkripsi &amp; kirim</button></p>
 </form></div>
+<div class="card"><h2>File terkirim</h2>{{ sent_table(sent) }}</div>
 {% endblock %}

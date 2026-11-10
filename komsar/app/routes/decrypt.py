@@ -3,6 +3,7 @@ import io
 from flask import Blueprint, abort, flash, g, render_template, request, send_file
 
 from ..errors import IntegrityViolationError, KomSaRError, StegoKeyMismatchError, ValidationError
+from ..services.audit_service import DECRYPT_FAILED, DECRYPT_SUCCESS, INTEGRITY_FAILED, audit
 from ._helpers import login_required, svc
 
 bp = Blueprint("decrypt", __name__)
@@ -27,6 +28,7 @@ def center():
                                                      expected_kind=request.form.get("kind") or None)
                 step2 = {"token": s.cache.put_pending(g.user.id, chosen, rid, secret), "secret": secret}
             except KomSaRError as e:
+                audit(DECRYPT_FAILED, target=chosen[:64], step="extract", reason=type(e).__name__)
                 flash(str(e), "error")                                               # ID salah / bukan hak / dll.
         else:                                                                        # langkah 2
             token = request.form.get("token", "")
@@ -41,7 +43,9 @@ def center():
                                                secret_input=request.form.get("secret_key", ""))
                     s.cache.drop_pending(token)
                     dl_token, step2 = s.cache.remember(g.user.id, chosen, result), None
+                    audit(DECRYPT_SUCCESS, target=chosen, kind=result.kind)
                 except StegoKeyMismatchError as e:                                   # kunci input tidak sesuai
+                    audit(DECRYPT_FAILED, target=chosen, step="open", reason=type(e).__name__)
                     if s.cache.fail_pending(token):
                         flash(str(e), "error")
                     else:
@@ -50,6 +54,10 @@ def center():
                 except ValidationError as e:                                         # mis. kunci kosong
                     flash(str(e), "error")
                 except (IntegrityViolationError, KomSaRError) as e:
+                    if isinstance(e, IntegrityViolationError):
+                        audit(INTEGRITY_FAILED, target=chosen, step="open", reason=type(e).__name__)
+                    else:
+                        audit(DECRYPT_FAILED, target=chosen, step="open", reason=type(e).__name__)
                     s.cache.drop_pending(token)
                     step2 = None
                     flash(str(e), "error")
