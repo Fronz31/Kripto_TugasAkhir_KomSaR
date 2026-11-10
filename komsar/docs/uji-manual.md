@@ -111,4 +111,5 @@ UPDATE files SET ciphertext = overlay(ciphertext placing '\x00'::bytea from 100 
 - [ ] **Audit Log** (`/admin/audit`): filter per pengguna dan aksi berfungsi; tidak ada password, kunci,
       User ID, token dongle, atau plaintext di kolom mana pun; IP yang tercatat adalah IP klien (bukan IP proxy).
 - [ ] **Blockchain Records** (`/admin/chain`): blok tampil, status rantai valid (sebelum uji tamper).
-- [ ] Non-admin membuka `/admin/dongles`, `/admin/audit`, `/admin/chain`, dan `/users/add`: ditolak (403).
+- [ ] Non-admin membuka `/admin/dongles`, `/admin/audit`, dan `/admin/chain`: ditolak (403). Di `/users/`
+      non-admin tidak melihat form tambah pengguna maupun tombol ubah/hapus.
