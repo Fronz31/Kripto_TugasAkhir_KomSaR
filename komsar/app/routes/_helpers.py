@@ -75,7 +75,9 @@ def require_dongle():
     return redirect(url_for("auth.login"))
 
 
-def fmt_dt(iso: str) -> str:
+def fmt_dt(iso) -> str:
+    if isinstance(iso, datetime):           # kolom DateTime; SQLite mengembalikan naive (UTC)
+        iso = (iso if iso.tzinfo else iso.replace(tzinfo=timezone.utc)).isoformat()
     return datetime.fromisoformat(iso).astimezone(WIB).strftime("%d %b %Y %H:%M WIB")
 
 

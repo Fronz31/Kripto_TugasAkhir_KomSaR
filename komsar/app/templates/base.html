@@ -1,7 +1,8 @@
 <!doctype html>
 <html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}{% endblock %} · KomSaR</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"></head>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+{% if me %}<meta name="csrf-token" content="{{ csrf_token() }}">{% endif %}</head>
 <body>
 {% if me %}
 <div class="layout">
@@ -13,7 +14,8 @@
   <a class="nav" href="{{ url_for('transfer.assets') }}">Aset Penting</a>
   <a class="nav" href="{{ url_for('decrypt.center') }}">Dekripsi</a>
   <a class="nav" href="{{ url_for('users.index') }}">Pengguna</a>
-  {% if me.is_admin %}<a class="nav" href="{{ url_for('admin.chain') }}">Blockchain Records</a>{% endif %}
+  {% if me.is_admin %}<a class="nav" href="{{ url_for('admin.chain') }}">Blockchain Records</a>
+  <a class="nav" href="{{ url_for('admin.dongles') }}">Dongle</a>{% endif %}
   <a class="nav" href="{{ url_for('auth.profile') }}">Profil</a>
   <div class="who">{{ me.full_name }}<br>{{ me.unit }}
     <form method="post" action="{{ url_for('auth.logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn ghost sm" type="submit">Keluar</button></form></div>
@@ -24,4 +26,5 @@
 <div class="login-wrap"><div>{% include '_flash.html' %}{% block public %}{% endblock %}</div></div>
 {% endif %}
 <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+{% block scripts %}{% endblock %}
 </body></html>
