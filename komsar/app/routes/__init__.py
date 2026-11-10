@@ -19,6 +19,11 @@ def register_routes(app):
     app.before_request(protect_csrf)
     app.before_request(require_dongle)
 
+    @app.get("/healthz")
+    def healthz():
+        """Cek hidup untuk platform: tanpa DB, tanpa login/dongle, tanpa memuat model suara."""
+        return "ok", 200, {"Content-Type": "text/plain"}
+
     @app.context_processor
     def inject():
         from ..auth.service import current_user
