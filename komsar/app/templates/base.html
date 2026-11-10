@@ -2,8 +2,8 @@
 <html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}{% endblock %} · KomSaR</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-{% if me %}<meta name="csrf-token" content="{{ csrf_token() }}">{% endif %}</head>
-<body>
+{% if me or pending %}<meta name="csrf-token" content="{{ csrf_token() }}">{% endif %}</head>
+<body{% if me %} data-session="1"{% endif %}>
 {% if me %}
 <div class="layout">
 <aside class="side">

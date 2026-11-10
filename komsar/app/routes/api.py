@@ -7,9 +7,10 @@ from functools import wraps
 
 from flask import Blueprint, current_app, jsonify, request, session
 
-from ..auth.service import current_user
+from ..auth.service import MAX_VOICE_FAILS, complete_login, current_user, lock, pending_user, record_failure
 from ..errors import AccessDeniedError, ValidationError
-from ..services.audit_service import DONGLE_REGISTER, audit
+from ..services.audit_service import (ACCOUNT_LOCKED, DONGLE_REGISTER, LOGIN_SUCCESS, VOICE_ENROLL,
+                                      VOICE_VERIFY_FAILED, VOICE_VERIFY_SUCCESS, audit)
 from ._helpers import svc
 
 bp = Blueprint("api", __name__, url_prefix="/api")
@@ -88,9 +89,39 @@ def _voice_call(fn):
         return jsonify(error=str(e)), 403
 
 
-# shortcut: login biasa dulu; fase alur login mengganti ke sesi login yang belum selesai (pending).
+def _allowed(user, purpose) -> bool:
+    """verify: pengguna pending yang punya profil suara. enroll: pengguna pending `must_enroll` yang sudah
+    mengganti password sementara (langkah login pertama)."""
+    if purpose == "verify":
+        return not user.must_enroll and svc().voice.has_profile(user)
+    if purpose == "enroll":
+        return user.must_enroll and bool(session.get("pw_changed"))
+    return True         # tujuan tak dikenal ditolak VoiceService (400)
+
+
+def api_pending_required(purpose=None):
+    """Endpoint suara hanya untuk sesi login yang belum selesai (setelah langkah 1, sebelum 3 menit)."""
+    def deco(view):
+        @wraps(view)
+        def wrapped(*args, **kwargs):
+            user = pending_user()
+            if user is None:
+                return jsonify(error="Sesi login tidak valid atau kedaluwarsa. Login ulang."), 401
+            if not _allowed(user, purpose or _body().get("purpose")):
+                return jsonify(error="Langkah login ini tidak tersedia untuk akun Anda."), 403
+            return view(user, *args, **kwargs)
+        return wrapped
+    return deco
+
+
+def _finish_login(user, factor):
+    complete_login(user)
+    audit(LOGIN_SUCCESS, target=user.username, user=user, factor=factor)
+    return _ok(True)
+
+
 @bp.route("/voice/challenge", methods=["POST"])
-@api_login_required()
+@api_pending_required()
 def voice_challenge(user):
     def run():
         cid, phrase = svc().voice.new_challenge(user, _body().get("purpose"))
@@ -99,21 +130,39 @@ def voice_challenge(user):
 
 
 @bp.route("/voice/enroll", methods=["POST"])
-@api_login_required()
+@api_pending_required("enroll")
 def voice_enroll(user):
     def run():
         samples = _body().get("samples")
         samples = [s for s in samples if isinstance(s, dict)] if isinstance(samples, list) else []
         svc().voice.enroll(user, [_wav(s.get("wav_b64")) for s in samples], [s.get("challenge_id") for s in samples])
-        return _ok(True)
+        audit(VOICE_ENROLL, target=user.username, user=user)
+        return _finish_login(user, "voice_enroll")      # password sudah diganti (dicek _allowed)
     return _voice_call(run)
 
 
 @bp.route("/voice/verify", methods=["POST"])
-@api_login_required()
+@api_pending_required("verify")
 def voice_verify(user):
     data = _body()
-    return _voice_call(lambda: _ok(svc().voice.verify(user, _wav(data.get("wav_b64")), data.get("challenge_id"))))
+
+    def run():
+        if svc().voice.verify(user, _wav(data.get("wav_b64")), data.get("challenge_id")):
+            audit(VOICE_VERIFY_SUCCESS, target=user.username, user=user)
+            return _finish_login(user, "voice")
+        audit(VOICE_VERIFY_FAILED, target=user.username, user=user)
+        # Hitungan per sesi pending (3x) + hitungan akun (5x gabungan password/suara) agar
+        # mengulang langkah 1 tidak mereset batas percobaan suara.
+        session["voice_fails"] = session.get("voice_fails", 0) + 1
+        locked = record_failure(user)
+        if not locked and session["voice_fails"] >= MAX_VOICE_FAILS:
+            lock(user)
+            locked = True
+        if locked:
+            audit(ACCOUNT_LOCKED, target=user.username, user=user, factor="voice")
+            session.clear()
+        return _ok(False)
+    return _voice_call(run)
 
 
 @bp.route("/dongle/heartbeat", methods=["POST"])

@@ -2,10 +2,14 @@
 {% block public %}
 <div class="card login-card">
   <div class="brand">Kom<span>SaR</span></div><div class="tag">Komunikasi Satuan Rakyat</div>
-  <form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <p id="desktop-only" class="flash error hidden">Gunakan aplikasi desktop KomSaR untuk login. Dongle flashdisk hanya dapat dibaca oleh aplikasi desktop.</p>
+  <form method="post" id="login-form" data-require-dongle="{{ '1' if require_dongle else '0' }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="dongle_id"><input type="hidden" name="token"><input type="hidden" name="volume_serial">
     <label>Username</label><input type="text" name="username" autocomplete="username" required autofocus>
     <label>Password</label><input type="password" name="password" autocomplete="current-password" required>
     <p><button type="submit">Masuk</button></p>
   </form>
+  <p class="note">Langkah berikutnya: verifikasi suara (atau pendaftaran suara dan ganti password pada login pertama).</p>
 </div>
 {% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='login.js') }}" defer></script>{% endblock %}

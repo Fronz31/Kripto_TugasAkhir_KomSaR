@@ -1,0 +1,27 @@
+{% extends 'base.html' %}{% block title %}Login pertama{% endblock %}
+{% block public %}
+<div class="card login-card">
+  <div class="brand">Kom<span>SaR</span></div><div class="tag">Login pertama: ganti password lalu daftarkan suara</div>
+  <p>Halo, {{ pending.full_name }}. Akun Anda baru dibuat atau suaranya di-reset admin.</p>
+  {% if not pw_changed %}
+  <h2>1. Ganti password sementara</h2>
+  <form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Password baru (min. 8 karakter, berbeda dari password sementara)</label><input type="password" name="new" autocomplete="new-password" minlength="8" required autofocus>
+    <label>Konfirmasi password baru</label><input type="password" name="confirm" autocomplete="new-password" minlength="8" required>
+    <p><button type="submit">Simpan password</button></p>
+  </form>
+  {% else %}
+  <h2>2. Daftarkan suara</h2>
+  <div id="voice-enroll">
+    <p>Anda akan merekam 3 kalimat acak (masing-masing 5 detik). Ucapkan setiap kalimat dengan jelas.</p>
+    <p class="phrase"><strong id="voice-phrase"></strong></p>
+    <p id="voice-status" class="note"></p>
+    <p><button type="button" id="voice-start">Mulai rekam</button></p>
+  </div>
+  {% endif %}
+  <p class="note">Sesi login berlaku 3 menit. Bila habis, login ulang dengan password {{ 'baru' if pw_changed else 'sementara' }} dan dongle.</p>
+  <p><a class="btn ghost" href="{{ url_for('auth.login') }}">Batal</a></p>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='voice.js') }}" defer></script>
+<script src="{{ url_for('static', filename='login.js') }}" defer></script>{% endblock %}
