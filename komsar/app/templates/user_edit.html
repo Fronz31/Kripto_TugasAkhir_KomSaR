@@ -13,4 +13,9 @@
 <form method="post" action="{{ url_for('users.regenerate_id', pk=user.id) }}" data-confirm="Buat User ID baru untuk {{ user.username }}? Pesan yang sudah dikirim untuk ID lama tidak dapat dibuka lagi.">{{ csrf() }}
   <p class="note">Peringatan: setelah ID diganti, pesan/file yang dienkripsi untuk ID lama tidak dapat dibuka lagi.</p>
   <button class="btn danger" type="submit">Buat ulang User ID</button></form></div>
+<div class="card"><h2>Suara</h2>
+<p>Status: <strong>{% if voice_enrolled %}terdaftar{% elif user.must_enroll %}menunggu pendaftaran ulang{% else %}belum terdaftar{% endif %}</strong></p>
+<form method="post" action="{{ url_for('users.reset_voice', pk=user.id) }}" data-confirm="Reset suara {{ user.username }}? Profil suara dihapus dan pengguna wajib mendaftar ulang.">{{ csrf() }}
+  <p class="note">Profil suara dihapus. Pengguna harus mendaftarkan suara lagi dalam batas waktu pendaftaran.</p>
+  <button class="btn danger" type="submit">Reset suara</button></form></div>
 {% endblock %}

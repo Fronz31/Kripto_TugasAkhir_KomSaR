@@ -1,4 +1,6 @@
-"""JSON API untuk dongle flashdisk. Balasan gagal tidak pernah menyebut alasannya."""
+"""JSON API untuk dongle flashdisk dan suara. Balasan gagal dongle tidak pernah menyebut alasannya."""
+import base64
+import binascii
 import time
 from collections import defaultdict, deque
 from functools import wraps
@@ -6,6 +8,7 @@ from functools import wraps
 from flask import Blueprint, current_app, jsonify, request, session
 
 from ..auth.service import current_user
+from ..errors import AccessDeniedError, ValidationError
 from ._helpers import svc
 
 bp = Blueprint("api", __name__, url_prefix="/api")
@@ -65,6 +68,50 @@ def dongle_register(user):
     except ValueError as e:
         return jsonify(error=str(e)), 400
     return jsonify(dongle_id=dongle_id, token=token)
+
+
+def _wav(b64) -> bytes:
+    try:
+        return base64.b64decode(b64 if isinstance(b64, str) else "", validate=True)
+    except binascii.Error:
+        raise ValidationError("Rekaman suara harus berupa base64.")
+
+
+def _voice_call(fn):
+    try:
+        return fn()
+    except ValidationError as e:
+        return jsonify(error=str(e)), 400
+    except AccessDeniedError as e:
+        return jsonify(error=str(e)), 403
+
+
+# shortcut: login biasa dulu; fase alur login mengganti ke sesi login yang belum selesai (pending).
+@bp.route("/voice/challenge", methods=["POST"])
+@api_login_required()
+def voice_challenge(user):
+    def run():
+        cid, phrase = svc().voice.new_challenge(user, _body().get("purpose"))
+        return jsonify(challenge_id=cid, phrase=phrase)
+    return _voice_call(run)
+
+
+@bp.route("/voice/enroll", methods=["POST"])
+@api_login_required()
+def voice_enroll(user):
+    def run():
+        samples = _body().get("samples")
+        samples = [s for s in samples if isinstance(s, dict)] if isinstance(samples, list) else []
+        svc().voice.enroll(user, [_wav(s.get("wav_b64")) for s in samples], [s.get("challenge_id") for s in samples])
+        return _ok(True)
+    return _voice_call(run)
+
+
+@bp.route("/voice/verify", methods=["POST"])
+@api_login_required()
+def voice_verify(user):
+    data = _body()
+    return _voice_call(lambda: _ok(svc().voice.verify(user, _wav(data.get("wav_b64")), data.get("challenge_id"))))
 
 
 @bp.route("/dongle/heartbeat", methods=["POST"])
