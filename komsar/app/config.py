@@ -28,7 +28,12 @@ def database_url(url) -> str:
 
 
 class Config:
-    SECRET_KEY = os.environ.get("KOMSAR_SECRET_KEY")
+    # production: secret + DATABASE_URL wajib, tanpa fallback SQLite (dicek di create_app)
+    KOMSAR_ENV = os.environ.get("KOMSAR_ENV", "development")
+    DATABASE_URL_SET = bool(os.environ.get("DATABASE_URL"))
+    # 1 = di belakang reverse proxy HTTPS (InstaCloud): percayai X-Forwarded-For/Proto dari 1 hop
+    KOMSAR_TRUST_PROXY = _flag("KOMSAR_TRUST_PROXY", "0")
+    SECRET_KEY =os.environ.get("KOMSAR_SECRET_KEY")
     DB_MASTER_KEY_B64 = os.environ.get("KOMSAR_DB_MASTER_KEY")
     SQLALCHEMY_DATABASE_URI = database_url(os.environ.get("DATABASE_URL"))
     SQLALCHEMY_TRACK_MODIFICATIONS = False
@@ -65,6 +70,8 @@ class Config:
 class TestConfig(Config):
     """Konfigurasi pengujian: kunci dibuat acak saat runtime, KDF diringankan agar cepat."""
     TESTING = True
+    KOMSAR_ENV = "testing"
+    KOMSAR_TRUST_PROXY = False
     SECRET_KEY = secrets.token_hex(16)
     DB_MASTER_KEY_B64 = base64.b64encode(os.urandom(32)).decode()
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"

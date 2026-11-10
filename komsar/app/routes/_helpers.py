@@ -55,7 +55,7 @@ def protect_csrf():
             abort(400, "Token keamanan formulir tidak valid. Muat ulang halaman lalu coba lagi.")
 
 
-DONGLE_EXEMPT = {"static", "api.dongle_check", "api.dongle_heartbeat"}
+DONGLE_EXEMPT = {"static", "healthz", "api.dongle_check", "api.dongle_heartbeat"}
 
 
 def require_dongle():
