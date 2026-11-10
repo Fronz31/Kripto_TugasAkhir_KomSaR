@@ -12,7 +12,14 @@ from ..models.security import AuditLog
 from ..models.user import User
 
 LOGIN_SUCCESS = "login_success"
-LOGIN_FAILED = "login_failed"        # target = username yang dicoba
+LOGIN_FAILED = "login_failed"        # target = username yang dicoba; meta reason (hanya di audit, bukan UI)
+LOGIN_STEP1_SUCCESS = "login_step1_success"   # password + dongle lolos, menunggu suara
+VOICE_VERIFY_SUCCESS = "voice_verify_success"
+VOICE_VERIFY_FAILED = "voice_verify_failed"
+VOICE_ENROLL = "voice_enroll"
+VOICE_RESET = "voice_reset"
+PASSWORD_CHANGE = "password_change"
+ACCOUNT_LOCKED = "account_locked"
 LOGOUT = "logout"
 SEND_TEXT = "send_text"              # meta kind, recipients, failed
 SEND_FILE = "send_file"              # file & gambar
@@ -27,7 +34,8 @@ USER_REGENERATE_ID = "user_regenerate_id"
 DONGLE_REGISTER = "dongle_register"  # target = dongle_id (token tidak pernah dicatat)
 DONGLE_DEACTIVATE = "dongle_deactivate"
 
-ACTIONS = (LOGIN_SUCCESS, LOGIN_FAILED, LOGOUT, SEND_TEXT, SEND_FILE, SEND_ASSET, DECRYPT_SUCCESS, DECRYPT_FAILED,
+ACTIONS = (LOGIN_SUCCESS, LOGIN_FAILED, LOGIN_STEP1_SUCCESS, VOICE_VERIFY_SUCCESS, VOICE_VERIFY_FAILED, VOICE_ENROLL,
+           VOICE_RESET, PASSWORD_CHANGE, ACCOUNT_LOCKED, LOGOUT, SEND_TEXT, SEND_FILE, SEND_ASSET, DECRYPT_SUCCESS, DECRYPT_FAILED,
            INTEGRITY_FAILED, USER_CREATE, USER_UPDATE, USER_DELETE, USER_REGENERATE_ID, DONGLE_REGISTER,
            DONGLE_DEACTIVATE)
 

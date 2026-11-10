@@ -105,10 +105,10 @@ def test_audit_integrity_failure(web):
 
 def test_audit_admin_actions_and_user_delete_keeps_logs(web):
     admin = login(web, "admin01")
-    post(admin, "/users/add", {"username": "dodi01", "full_name": "Dodi", "unit": "U", "password": PW})
+    post(admin, "/users/add", {"username": "dodi01", "full_name": "Dodi", "unit": "U"})
     dodi = us.get_by_username("dodi01")
     pk, first_id = dodi.id, dodi.user_id
-    login(web, "dodi01")                                       # baris audit milik dodi sendiri
+    audit("login_success", target="dodi01", user=dodi)         # baris audit milik dodi sendiri
     post(admin, f"/users/{pk}/edit", {"full_name": "Dodi B", "unit": "U", "is_active": "on"})
     post(admin, f"/users/{pk}/regenerate-id")
     regen_id = us.get_by_username("dodi01").user_id

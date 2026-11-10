@@ -1,8 +1,4 @@
 """Uji suara memakai FakeVoiceVerifier: validasi WAV, tantangan, enroll, verify, reset admin, endpoint."""
-import base64
-import io
-import wave
-
 import numpy as np
 import pytest
 
@@ -14,25 +10,7 @@ from app.extensions import db
 from app.models.security import VoiceProfile
 from app.services import user_service as us
 from app.services.voice_service import CHALLENGE_TTL
-
-PW = "komsar123"
-ANDI, BUDI = 220.0, 3100.0          # "pembicara" = frekuensi dasar berbeda
-
-
-def make_wav(freq=ANDI, seed=0, seconds=3.0, rate=16000, channels=1, width=2) -> bytes:
-    rng = np.random.default_rng(seed)
-    t = np.arange(int(seconds * rate)) / rate
-    x = 0.5 * np.sin(2 * np.pi * freq * t) + 0.02 * rng.standard_normal(t.size)
-    pcm = (np.clip(x, -1, 1) * 32767).astype("<i2")
-    if channels == 2:
-        pcm = np.repeat(pcm, 2)
-    buf = io.BytesIO()
-    with wave.open(buf, "wb") as w:
-        w.setnchannels(channels)
-        w.setsampwidth(width)
-        w.setframerate(rate)
-        w.writeframes(pcm.tobytes() if width == 2 else (pcm >> 8).astype("i1").tobytes())
-    return buf.getvalue()
+from tests.helpers import ANDI, BUDI, PW, b64, login, login_step1, make_wav  # noqa: F401
 
 
 @pytest.fixture
@@ -176,29 +154,21 @@ def test_delete_user_with_profile(web):
 
 # ---- endpoint ----
 
-def login(app, username):
-    c = app.test_client()
-    with c.session_transaction() as s:
-        s["csrf_token"] = "tok-test"
-    c.post("/login", data={"username": username, "password": PW, "csrf_token": "tok-test"})
-    with c.session_transaction() as s:
-        s["csrf_token"] = "tok-test"
-    return c
-
-
 def post(c, url, body):
     return c.post(url, json=body, headers={"X-CSRF-Token": "tok-test"})
 
 
-def b64(data):
-    return base64.b64encode(data).decode()
-
-
 def test_api_enroll_and_verify(web):
-    c = login(web, "andi01")
+    us.require_enrollment(u("andi01"), 24)
+    c = web.test_client()
+    login_step1(web, c, "andi01")                                   # sesi pending, wajib daftar
     assert web.test_client().post("/api/voice/challenge", json={"purpose": "verify"}).status_code in (400, 401)
     assert c.post("/api/voice/challenge", json={"purpose": "enroll"}).status_code == 400    # tanpa CSRF
+    assert post(c, "/api/voice/challenge", {"purpose": "enroll"}).status_code == 403       # password belum diganti
+    with c.session_transaction() as s:
+        s["pw_changed"] = True
     assert post(c, "/api/voice/challenge", {"purpose": "x"}).status_code == 400
+    assert post(c, "/api/voice/challenge", {"purpose": "verify"}).status_code == 403      # belum punya profil
     samples = []
     for i in range(3):
         r = post(c, "/api/voice/challenge", {"purpose": "enroll"}).get_json()
@@ -208,17 +178,24 @@ def test_api_enroll_and_verify(web):
     samples = [{"challenge_id": post(c, "/api/voice/challenge", {"purpose": "enroll"}).get_json()["challenge_id"],
                 "wav_b64": s["wav_b64"]} for s in samples]
     assert post(c, "/api/voice/enroll", {"samples": samples}).get_json() == {"ok": True}
-    r = post(c, "/api/voice/enroll", {"samples": samples})
-    assert r.status_code in (400, 403)
+    with c.session_transaction() as s:
+        assert "user_pk" in s and "pending_user_id" not in s
+        s["csrf_token"] = "tok-test"
+    assert post(c, "/api/voice/enroll", {"samples": samples}).status_code == 401           # sudah login, bukan pending
+
+    c = web.test_client()
+    login_step1(web, c, "andi01")
+    assert post(c, "/api/voice/challenge", {"purpose": "enroll"}).status_code == 403      # tidak bisa daftar ulang
 
     def verify(wav):
         cid = post(c, "/api/voice/challenge", {"purpose": "verify"}).get_json()["challenge_id"]
         return post(c, "/api/voice/verify", {"challenge_id": cid, "wav_b64": wav})
-    assert verify(b64(make_wav(ANDI, 7))).get_json() == {"ok": True}
-    r = verify(b64(make_wav(BUDI, 7)))
-    assert r.status_code == 403 and r.get_json() == {"ok": False}
     assert verify("%%%").status_code == 400
     assert verify(b64(b"bukan wav")).status_code == 400
+    r = verify(b64(make_wav(BUDI, 7)))
+    assert r.status_code == 403 and r.get_json() == {"ok": False}
+    assert verify(b64(make_wav(ANDI, 7))).get_json() == {"ok": True}
+    assert c.get("/dashboard").status_code == 200
 
 
 def test_admin_reset_route(web):
@@ -228,5 +205,6 @@ def test_admin_reset_route(web):
     assert voice(web).has_profile(u("andi01"))
     admin = login(web, "admin01")
     assert "terdaftar" in admin.get(f"/users/{pk}/edit").get_data(as_text=True)
-    assert admin.post(f"/users/{pk}/reset-voice", data={"csrf_token": "tok-test"}).status_code == 302
+    page = admin.post(f"/users/{pk}/reset-voice", data={"csrf_token": "tok-test"}).get_data(as_text=True)
+    assert "Password sementara andi01" in page
     assert not voice(web).has_profile(u("andi01")) and u("andi01").must_enroll

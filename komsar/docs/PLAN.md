@@ -212,8 +212,8 @@ Keterbatasan yang dicatat di `docs/keamanan.md`:
 3. **Lockout**: 5 kali gagal password atau 3 kali gagal suara, akun terkunci 15 menit. Dicatat di audit log.
 4. Pesan galat login disamakan ("username, password, atau dongle tidak valid").
 5. **Bootstrap admin pertama**: perintah CLI `flask --app run komsar bootstrap-admin` dijalankan di laptop
-   admin dengan `DATABASE_URL` Neon. Perintah ini membuat akun admin, mendaftarkan flashdisk yang dicolok,
-   dan merekam 3 sampel suara admin dari mikrofon lokal.
+   admin dengan `DATABASE_URL` Neon. Perintah ini membuat akun admin (password sementara, `must_enroll`) dan
+   mendaftarkan flashdisk yang dicolok. Suara admin didaftarkan saat login pertama di aplikasi desktop.
 6. Hapus akun contoh `komsar123` dari seed produksi. Seed contoh hanya untuk mode development/test.
 7. Cookie sesi: `Secure`, `HttpOnly`, `SameSite=Lax`, batas umur sesi 8 jam.
 

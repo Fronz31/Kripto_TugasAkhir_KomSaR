@@ -1,6 +1,7 @@
 {% extends 'base.html' %}{% from '_macros.html' import csrf %}
 {% block title %}Edit pengguna{% endblock %}
 {% block content %}
+{% include '_temp_password.html' %}
 <h1>Edit {{ user.username }}</h1><div class="sub">Username tidak dapat diubah. User ID hanya dapat dibuat ulang (lihat di bawah).</div>
 <div class="card"><form method="post">{{ csrf() }}
   <label>Nama lengkap</label><input type="text" name="full_name" value="{{ user.full_name }}" required>
@@ -16,6 +17,6 @@
 <div class="card"><h2>Suara</h2>
 <p>Status: <strong>{% if voice_enrolled %}terdaftar{% elif user.must_enroll %}menunggu pendaftaran ulang{% else %}belum terdaftar{% endif %}</strong></p>
 <form method="post" action="{{ url_for('users.reset_voice', pk=user.id) }}" data-confirm="Reset suara {{ user.username }}? Profil suara dihapus dan pengguna wajib mendaftar ulang.">{{ csrf() }}
-  <p class="note">Profil suara dihapus. Pengguna harus mendaftarkan suara lagi dalam batas waktu pendaftaran.</p>
+  <p class="note">Profil suara dihapus. Password sementara baru dibuat; pengguna harus mendaftarkan suara dan mengganti password dalam batas waktu pendaftaran.</p>
   <button class="btn danger" type="submit">Reset suara</button></form></div>
 {% endblock %}

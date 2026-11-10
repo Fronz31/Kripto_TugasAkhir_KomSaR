@@ -1,9 +1,9 @@
-from flask import Blueprint, flash, g, redirect, render_template, request, url_for
+from flask import Blueprint, current_app, flash, g, redirect, render_template, request, url_for
 
 from ..errors import KomSaRError
 from ..services import user_service as us
 from ..services.audit_service import (USER_CREATE, USER_DELETE, USER_REGENERATE_ID, USER_UPDATE,
-                                      audit)
+                                      VOICE_RESET, audit)
 from ._helpers import admin_required, login_required, svc
 
 bp = Blueprint("users", __name__, url_prefix="/users")
@@ -21,13 +21,19 @@ def index():
 def add():
     f = request.form
     try:
-        user = us.create_user(f.get("username"), f.get("full_name"), f.get("unit"),
-                              f.get("password"), is_admin=bool(f.get("is_admin")))
+        user, temp = us.create_with_temp_password(f.get("username"), f.get("full_name"), f.get("unit"),
+                                                  _enroll_hours(), is_admin=bool(f.get("is_admin")))
         audit(USER_CREATE, target=user.username, is_admin=user.is_admin)
-        flash(f"Pengguna berhasil ditambahkan. User ID: {user.user_id} (serahkan kepada pemiliknya).", "success")
     except KomSaRError as e:
         flash(str(e), "error")
-    return redirect(url_for("users.index"))
+        return redirect(url_for("users.index"))
+    # Dirender langsung (bukan flash) agar password sementara tidak ikut tersimpan di cookie sesi.
+    flash(f"Pengguna berhasil ditambahkan. User ID: {user.user_id} (serahkan kepada pemiliknya).", "success")
+    return render_template("users.html", users=us.list_users(), q="", temp_user=user, temp_password=temp)
+
+
+def _enroll_hours() -> int:
+    return int(current_app.config["ENROLL_WINDOW_HOURS"])
 
 
 @bp.route("/<int:pk>/edit", methods=["GET", "POST"])
@@ -73,10 +79,13 @@ def reset_voice(pk):
     try:
         user = us.get_user(pk)
         svc().voice.reset(user, g.user)
-        flash(f"Suara {user.username} di-reset. Pengguna wajib mendaftarkan suara saat login berikutnya.", "success")
+        temp = us.issue_temp_password(user, _enroll_hours())
+        audit(VOICE_RESET, target=user.username)
     except KomSaRError as e:
         flash(str(e), "error")
-    return redirect(url_for("users.edit", pk=pk))
+        return redirect(url_for("users.edit", pk=pk))
+    flash(f"Suara {user.username} di-reset. Pengguna wajib mendaftarkan suara saat login berikutnya.", "success")
+    return render_template("user_edit.html", user=user, voice_enrolled=False, temp_user=user, temp_password=temp)
 
 
 @bp.route("/<int:pk>/delete", methods=["POST"])
