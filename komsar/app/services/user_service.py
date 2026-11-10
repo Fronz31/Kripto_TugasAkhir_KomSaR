@@ -7,6 +7,7 @@ from sqlalchemy import or_
 from ..auth.password import hash_password
 from ..errors import DuplicateUserError, UserNotFoundError, ValidationError
 from ..extensions import db
+from ..models.security import VoiceProfile
 from ..models.user import User
 
 _USERNAME_RE = re.compile(r"^[a-z0-9_.]{3,32}$")
@@ -110,7 +111,9 @@ def regenerate_user_id(pk: int) -> User:
 
 
 def delete_user(pk: int) -> None:
-    db.session.delete(get_user(pk))
+    user = get_user(pk)
+    VoiceProfile.query.filter_by(user_id=pk).delete()       # FK tanpa ON DELETE
+    db.session.delete(user)
     db.session.commit()
 
 

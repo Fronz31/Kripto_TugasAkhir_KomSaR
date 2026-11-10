@@ -44,6 +44,12 @@ class Config:
     DONGLE_HEARTBEAT_TIMEOUT = _int("DONGLE_HEARTBEAT_TIMEOUT", 60)    # detik
     DONGLE_CHECK_RATE_PER_MIN = 30                                      # per IP, /api/dongle/check
 
+    # Suara: speechbrain (server, butuh requirements-server.txt) atau fake (khusus test)
+    VOICE_BACKEND = os.environ.get("VOICE_BACKEND", "speechbrain")
+    VOICE_MODEL_DIR = os.environ.get("VOICE_MODEL_DIR", str(BASE_DIR / "models" / "spkrec-ecapa-voxceleb"))
+    VOICE_THRESHOLD = float(os.environ.get("VOICE_THRESHOLD", 0.25))   # kalibrasi dengan suara tim
+    ENROLL_WINDOW_HOURS = _int("ENROLL_WINDOW_HOURS", 24)
+
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
     TESTING = False
@@ -60,6 +66,7 @@ class TestConfig(Config):
     ARGON2_PARALLELISM = 1
     MAX_FILE_BYTES = 1024 * 1024
     KOMSAR_REQUIRE_DONGLE = False
+    VOICE_BACKEND = "fake"
 
 
 def load_db_master_key(config) -> bytes:

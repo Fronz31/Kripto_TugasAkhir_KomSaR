@@ -7,6 +7,7 @@ from .asset_service import AssetService
 from .decryption_service import DecryptionCenter
 from .result_cache import ResultCache
 from .messaging_service import MessagingService
+from .voice_service import VoiceService
 
 
 def build_services(app) -> SimpleNamespace:
@@ -17,4 +18,5 @@ def build_services(app) -> SimpleNamespace:
         repo=repo, chain=chain, assets=assets, cache=ResultCache(), dongles=DongleService(),
         messaging=MessagingService.from_app(app, repo, assets),
         decryption=DecryptionCenter(repo, app.config["DB_MASTER_KEY"], assets),
+        voice=VoiceService.from_app(app),
     )
