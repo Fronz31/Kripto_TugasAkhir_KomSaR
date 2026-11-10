@@ -1,0 +1,14 @@
+.git
+.claude
+**/.venv
+**/__pycache__
+**/.pytest_cache
+*.zip
+**/.env
+komsar/instance
+komsar/storage
+komsar/tests
+komsar/models
+komsar/desktop
+# app/cli.py memuat desktop/dongle.py saat import (create_app -> register_cli); file ini wajib ada.
+!komsar/desktop/dongle.py
