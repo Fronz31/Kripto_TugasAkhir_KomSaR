@@ -7,7 +7,7 @@ class User(db.Model):
     __tablename__ = "users"
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.String(16), unique=True, nullable=False, index=True)   # mis. B001
+    user_id = db.Column(db.String(16), unique=True, nullable=False, index=True)   # mis. K7QX-92MF-TR4D (acak, buatan sistem)
     username = db.Column(db.String(32), unique=True, nullable=False, index=True)  # mis. budi01
     full_name = db.Column(db.String(100), nullable=False)
     unit = db.Column(db.String(60), nullable=False)

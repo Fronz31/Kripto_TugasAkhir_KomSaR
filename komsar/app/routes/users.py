@@ -19,9 +19,9 @@ def index():
 def add():
     f = request.form
     try:
-        us.create_user(f.get("username"), f.get("user_id"), f.get("full_name"), f.get("unit"),
-                       f.get("password"), is_admin=bool(f.get("is_admin")))
-        flash("Pengguna berhasil ditambahkan.", "success")
+        user = us.create_user(f.get("username"), f.get("full_name"), f.get("unit"),
+                              f.get("password"), is_admin=bool(f.get("is_admin")))
+        flash(f"Pengguna berhasil ditambahkan. User ID: {user.user_id} (serahkan kepada pemiliknya).", "success")
     except KomSaRError as e:
         flash(str(e), "error")
     return redirect(url_for("users.index"))
@@ -47,6 +47,18 @@ def edit(pk):
         except KomSaRError as e:
             flash(str(e), "error")
     return render_template("user_edit.html", user=user)
+
+
+@bp.route("/<int:pk>/regenerate-id", methods=["POST"])
+@admin_required
+def regenerate_id(pk):
+    try:
+        user = us.regenerate_user_id(pk)
+        flash(f"User ID baru untuk {user.username}: {user.user_id}. Pesan untuk ID lama tidak dapat dibuka lagi.",
+              "success")
+    except KomSaRError as e:
+        flash(str(e), "error")
+    return redirect(url_for("users.edit", pk=pk))
 
 
 @bp.route("/<int:pk>/delete", methods=["POST"])

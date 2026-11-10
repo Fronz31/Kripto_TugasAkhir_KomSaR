@@ -20,6 +20,7 @@ from ..extensions import db
 from ..models.records import (ALL_KINDS, KIND_ASSET, KIND_IMPORTANT_TEXT, KIND_TEXT, STATUS_DECRYPTED)
 from ..models.user import User
 from ..stego.extract import extract_key
+from .user_service import normalize_user_id
 
 
 @dataclass
@@ -87,7 +88,7 @@ class DecryptionCenter:
 
     @staticmethod
     def _normalize_id(id_input: str) -> str:
-        rid = (id_input or "").strip().upper()
+        rid = normalize_user_id(id_input)                       # bentuk kanonik sama dengan sisi pengirim (DB)
         if not rid:
             raise ValidationError("User ID wajib diisi.")
         return rid

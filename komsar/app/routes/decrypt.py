@@ -21,7 +21,7 @@ def center():
     if request.method == "POST":
         if request.form.get("action", "extract") == "extract":                       # langkah 1
             chosen = request.form.get("delivery_id", "")
-            rid = request.form.get("user_id", "").strip().upper()
+            rid = request.form.get("user_id", "")
             try:
                 secret = s.decryption.extract_secret(g.user, chosen, rid,
                                                      expected_kind=request.form.get("kind") or None)
