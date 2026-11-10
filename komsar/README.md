@@ -29,6 +29,8 @@ python -m pytest -q
 | `KOMSAR_DB_MASTER_KEY` | (wajib) | 32 byte base64, lapisan enkripsi pesan penting di database |
 | `DATABASE_URL` | SQLite `instance/komsar.db` | Neon: `postgresql://user:pass@host/db?sslmode=require` (otomatis memakai driver psycopg) |
 | `MAX_FILE_MB` | `10` | batas ukuran file; file disimpan di database |
+| `KOMSAR_REQUIRE_DONGLE` | `0` | `1` = setiap request butuh heartbeat dongle; sesi diakhiri bila heartbeat kedaluwarsa |
+| `DONGLE_HEARTBEAT_TIMEOUT` | `60` | detik sejak heartbeat dongle terakhir sebelum sesi dikunci |
 
 Semua data (pengguna, pesan, ciphertext file, gambar steganografi, blok blockchain) disimpan di database dan
 bertahan saat server restart. Tabel dibuat otomatis (`db.create_all()`). Database SQLite lama dari versi
@@ -41,6 +43,19 @@ sebelumnya perlu dihapus (`instance/komsar.db`) karena tabel `users` mendapat ko
 - Tahap 4 (blockchain): hash chaining SHA-256 (tanpa PoW), satu blok per aset penting, validasi rantai,
   verifikasi integritas sebelum aset dibuka — selesai. Blok tidak ditampilkan ke pengguna (lihat `docs/keamanan.md`)
   (record disimpan di database lewat `app/repository.py`, blok di tabel `blocks`)
+
+## Dongle flashdisk
+File `KOMSAR.DONGLE` di root flashdisk berisi `dongle_id` dan token acak 32 byte. Server hanya menyimpan
+SHA-256(token) dan serial volume flashdisk, jadi file yang disalin ke flashdisk lain ditolak.
+
+Mendaftarkan dongle (admin, wajib lewat aplikasi desktop `desktop/`):
+1. Colokkan flashdisk, buka menu **Dongle** (`/admin/dongles`).
+2. Pilih flashdisk, isi label, klik **Daftarkan dongle**. Server membuat ID + token, aplikasi menulis file ke flashdisk.
+3. Bila penulisan gagal, nonaktifkan entri baru itu lalu ulangi. Flashdisk hilang: klik **Nonaktifkan**.
+
+Endpoint: `POST /api/dongle/check` (tanpa login, dipakai klien desktop, dibatasi 30 request/menit per IP),
+`POST /api/dongle/register` (admin), `POST /api/dongle/heartbeat` (dikirim halaman tiap 30 detik).
+Penegakan heartbeat aktif bila `KOMSAR_REQUIRE_DONGLE=1`.
 
 ## Pemakaian service (contoh)
 ```python
