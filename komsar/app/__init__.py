@@ -35,4 +35,6 @@ def create_app(config_class=Config) -> Flask:
         app.extensions["komsar"] = build_services(app)      # blok genesis dibuat di DB bila belum ada
     from .routes import register_routes
     register_routes(app)
+    from .cli import register_cli
+    register_cli(app)
     return app
