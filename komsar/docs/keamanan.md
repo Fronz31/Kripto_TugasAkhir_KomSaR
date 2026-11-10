@@ -19,3 +19,12 @@
 4. **Nama file asli** disimpan sebagai metadata biasa (tidak terenkripsi); isi file terenkripsi penuh.
 5. **Master key database** (lapisan pesan penting) berada di environment server; siapa pun yang menguasai
    server dan `.env` dapat membuka lapisan itu.
+6. **Verifikasi suara tidak mendeteksi rekaman ulang (*replay*).** Server memberi kalimat acak 4 kata yang
+   berlaku 2 menit dan sekali pakai, tetapi isi ucapan tidak dicek dengan speech-to-text. Rekaman suara asli
+   pemilik akun (kalimat apa pun) yang diputar ulang bisa lolos. Skor juga bergantung pada mikrofon dan
+   `VOICE_THRESHOLD`; nilai default 0.25 harus dikalibrasi dengan suara tim. Embedding suara disimpan
+   terenkripsi dengan master key database (poin 5 berlaku), rekaman WAV tidak disimpan.
+7. **Pendaftaran suara pertama hanya dilindungi password sementara + dongle.** Siapa pun yang mendapat password
+   sementara sebelum pemilik akun bisa mendaftarkan suaranya sendiri lebih dulu, dan setelah itu pemilik asli
+   ditolak. Mitigasi: password sementara diserahkan langsung, batas waktu pendaftaran (`ENROLL_WINDOW_HOURS`)
+   pendek, pendaftaran dicatat di audit log, dan hanya admin yang bisa me-reset suara.

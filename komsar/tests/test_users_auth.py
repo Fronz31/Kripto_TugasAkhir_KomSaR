@@ -1,6 +1,5 @@
 import pytest
 
-from app.auth.biometric import BiometricAuthenticator
 from app.auth.password import hash_password, verify_password
 from app.auth.service import authenticate, current_user, login_user, logout_user
 from app.errors import DuplicateUserError, UserNotFoundError, ValidationError
@@ -61,12 +60,6 @@ def test_login_logout_session(app, users):
         assert current_user() is None
     us.update_user(user.id, is_active=False)
     assert authenticate("budi01", "password-budi") is None
-
-
-def test_placeholders_do_not_simulate():
-    assert BiometricAuthenticator.available is False
-    with pytest.raises(NotImplementedError):
-        BiometricAuthenticator().verify(None, None)
 
 
 # ---------------- User ID acak ----------------

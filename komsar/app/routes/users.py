@@ -46,7 +46,7 @@ def edit(pk):
             return redirect(url_for("users.index"))
         except KomSaRError as e:
             flash(str(e), "error")
-    return render_template("user_edit.html", user=user)
+    return render_template("user_edit.html", user=user, voice_enrolled=svc().voice.has_profile(user))
 
 
 @bp.route("/<int:pk>/regenerate-id", methods=["POST"])
@@ -56,6 +56,18 @@ def regenerate_id(pk):
         user = us.regenerate_user_id(pk)
         flash(f"User ID baru untuk {user.username}: {user.user_id}. Pesan untuk ID lama tidak dapat dibuka lagi.",
               "success")
+    except KomSaRError as e:
+        flash(str(e), "error")
+    return redirect(url_for("users.edit", pk=pk))
+
+
+@bp.route("/<int:pk>/reset-voice", methods=["POST"])
+@admin_required
+def reset_voice(pk):
+    try:
+        user = us.get_user(pk)
+        svc().voice.reset(user, g.user)
+        flash(f"Suara {user.username} di-reset. Pengguna wajib mendaftarkan suara saat login berikutnya.", "success")
     except KomSaRError as e:
         flash(str(e), "error")
     return redirect(url_for("users.edit", pk=pk))

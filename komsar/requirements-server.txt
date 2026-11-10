@@ -1,0 +1,9 @@
+# Server (deploy): requirements.txt + model pengenal suara.
+# Pakai wheel CPU agar image kecil:
+#   pip install --index-url https://download.pytorch.org/whl/cpu torch torchaudio
+#   pip install -r requirements-server.txt
+# Test lokal cukup requirements.txt (VOICE_BACKEND=fake di TestConfig).
+-r requirements.txt
+speechbrain>=1.0
+torch>=2.1
+torchaudio>=2.1
