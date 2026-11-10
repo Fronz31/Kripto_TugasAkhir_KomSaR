@@ -1,7 +1,6 @@
 import pytest
 
 from app.auth.biometric import BiometricAuthenticator
-from app.auth.dongle import DongleAuthenticator
 from app.auth.password import hash_password, verify_password
 from app.auth.service import authenticate, current_user, login_user, logout_user
 from app.errors import DuplicateUserError, UserNotFoundError, ValidationError
@@ -65,11 +64,9 @@ def test_login_logout_session(app, users):
 
 
 def test_placeholders_do_not_simulate():
-    assert BiometricAuthenticator.available is False and DongleAuthenticator.available is False
+    assert BiometricAuthenticator.available is False
     with pytest.raises(NotImplementedError):
         BiometricAuthenticator().verify(None, None)
-    with pytest.raises(NotImplementedError):
-        DongleAuthenticator().activate(None, None)
 
 
 # ---------------- User ID acak ----------------

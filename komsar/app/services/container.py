@@ -1,5 +1,6 @@
 from types import SimpleNamespace
 
+from ..auth.dongle import DongleService
 from ..blockchain.chain import Blockchain
 from ..repository import SqlRepository
 from .asset_service import AssetService
@@ -13,7 +14,7 @@ def build_services(app) -> SimpleNamespace:
     chain = Blockchain()
     assets = AssetService(repo, chain)
     return SimpleNamespace(
-        repo=repo, chain=chain, assets=assets, cache=ResultCache(),
+        repo=repo, chain=chain, assets=assets, cache=ResultCache(), dongles=DongleService(),
         messaging=MessagingService.from_app(app, repo, assets),
         decryption=DecryptionCenter(repo, app.config["DB_MASTER_KEY"], assets),
     )

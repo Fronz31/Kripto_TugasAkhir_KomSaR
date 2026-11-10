@@ -1,11 +1,12 @@
 import re
 import secrets
+import time
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 
-from flask import abort, current_app, flash, g, redirect, request, session, url_for
+from flask import abort, current_app, flash, g, jsonify, redirect, request, session, url_for
 
-from ..auth.service import current_user
+from ..auth.service import SESSION_KEY, current_user
 
 WIB = timezone(timedelta(hours=7))
 STATUS_LABELS = {"sent": "Terkirim", "delivered": "Diterima", "decrypted": "Sudah dibuka"}
@@ -45,13 +46,38 @@ def csrf_token() -> str:
 
 
 def protect_csrf():
+    if request.endpoint == "api.dongle_check":      # dipanggil klien desktop tanpa sesi
+        return
     if request.method in ("POST", "PUT", "PATCH", "DELETE"):
         sent = request.form.get("csrf_token") or request.headers.get("X-CSRF-Token", "")
         if not sent or not secrets.compare_digest(sent, session.get("csrf_token", "")):
             abort(400, "Token keamanan formulir tidak valid. Muat ulang halaman lalu coba lagi.")
 
 
-def fmt_dt(iso: str) -> str:
+DONGLE_EXEMPT = {"static", "api.dongle_check", "api.dongle_heartbeat"}
+
+
+def require_dongle():
+    """Akhiri sesi bila KOMSAR_REQUIRE_DONGLE aktif dan heartbeat dongle kedaluwarsa."""
+    if not current_app.config.get("KOMSAR_REQUIRE_DONGLE") or request.endpoint in DONGLE_EXEMPT:
+        return None
+    user_pk = session.get(SESSION_KEY)
+    seen = session.get("dongle_seen")
+    if user_pk is None:
+        return None
+    if seen is not None and time.time() - seen <= current_app.config["DONGLE_HEARTBEAT_TIMEOUT"]:
+        return None
+    svc().cache.clear_user(user_pk)
+    session.clear()
+    if request.path.startswith("/api/"):
+        return jsonify(error="Dongle tidak terdeteksi. Sesi diakhiri."), 401
+    flash("Dongle tidak terdeteksi. Colokkan dongle lalu login kembali.", "error")
+    return redirect(url_for("auth.login"))
+
+
+def fmt_dt(iso) -> str:
+    if isinstance(iso, datetime):           # kolom DateTime; SQLite mengembalikan naive (UTC)
+        iso = (iso if iso.tzinfo else iso.replace(tzinfo=timezone.utc)).isoformat()
     return datetime.fromisoformat(iso).astimezone(WIB).strftime("%d %b %Y %H:%M WIB")
 
 

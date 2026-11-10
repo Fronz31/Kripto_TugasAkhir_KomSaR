@@ -39,6 +39,11 @@ class Config:
     ARGON2_MEMORY_KIB = _int("ARGON2_MEMORY_KIB", 65536)
     ARGON2_PARALLELISM = _int("ARGON2_PARALLELISM", 2)
 
+    # Wajib dongle selama sesi (heartbeat). Dinyalakan setelah alur login dongle selesai.
+    KOMSAR_REQUIRE_DONGLE = os.environ.get("KOMSAR_REQUIRE_DONGLE", "0").lower() in ("1", "true", "yes")
+    DONGLE_HEARTBEAT_TIMEOUT = _int("DONGLE_HEARTBEAT_TIMEOUT", 60)    # detik
+    DONGLE_CHECK_RATE_PER_MIN = 30                                      # per IP, /api/dongle/check
+
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
     TESTING = False
@@ -54,6 +59,7 @@ class TestConfig(Config):
     ARGON2_MEMORY_KIB = 64
     ARGON2_PARALLELISM = 1
     MAX_FILE_BYTES = 1024 * 1024
+    KOMSAR_REQUIRE_DONGLE = False
 
 
 def load_db_master_key(config) -> bytes:
