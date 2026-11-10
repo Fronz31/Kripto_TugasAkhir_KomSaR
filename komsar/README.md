@@ -6,7 +6,8 @@ pip install -r requirements.txt
 python run.py
 ```
 Lalu buka **http://127.0.0.1:5000**. Pertama kali dijalankan, `run.py` otomatis membuat `.env` (kunci acak) dan akun contoh
-(password semua: `komsar123`): `admin01` (admin), `andi01`, `budi01`, `citra01`, `deni01`. Hapus/ganti akun ini sebelum dipakai sungguhan.
+(password semua: `komsar123`): `admin01` (admin), `andi01`, `budi01`, `citra01`, `deni01`. User ID-nya acak (`XXXX-XXXX-XXXX`)
+dan dicetak di konsol saat dibuat; admin juga melihatnya di menu Pengguna. Hapus/ganti akun ini sebelum dipakai sungguhan.
 Alur dekripsi: gambar steganografi tampil → penerima input User ID → kunci hasil ekstraksi ditampilkan → penerima mengetik
 ulang kunci itu → sistem menggabungkan ID + kunci → data terbuka. User ID tidak ditampilkan ke pengguna (hanya admin yang
 melihatnya di menu Pengguna dan menyampaikannya ke pemiliknya).
@@ -47,7 +48,7 @@ sebelumnya perlu dihapus (`instance/komsar.db`) karena tabel `users` mendapat ko
 svc = app.extensions["komsar"]
 msg = svc.messaging.send_text(sender, ["budi01", "citra01"], "Halo", "K123", important=True)
 inbox = svc.messaging.inbox(budi)                       # data chatbox (tanpa plaintext)
-res = svc.decryption.open(budi, inbox[0]["delivery_id"], "B001")
+res = svc.decryption.open(budi, inbox[0]["delivery_id"], budi.user_id)
 print(res.text)
 ```
 

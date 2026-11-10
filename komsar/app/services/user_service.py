@@ -1,5 +1,6 @@
 """Manajemen pengguna: tambah, ubah, hapus, daftar, cari, resolusi username -> User ID."""
 import re
+import secrets
 
 from sqlalchemy import or_
 
@@ -9,7 +10,24 @@ from ..extensions import db
 from ..models.user import User
 
 _USERNAME_RE = re.compile(r"^[a-z0-9_.]{3,32}$")
-_USER_ID_RE = re.compile(r"^[A-Z0-9]{2,16}$")
+USER_ID_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"            # tanpa I, L, O, 0, 1 (mudah tertukar)
+USER_ID_LENGTH = 12                                              # 12 x log2(31) ~ 59 bit
+
+
+def normalize_user_id(value: str) -> str:
+    """Bentuk kanonik XXXX-XXXX-XXXX: huruf besar, tanpa spasi; tanda '-' boleh ada atau tidak."""
+    raw = re.sub(r"[\s-]", "", value or "").upper()
+    if len(raw) != USER_ID_LENGTH:
+        return raw                                               # bukan format ID; tetap ditolak saat ekstraksi
+    return "-".join(raw[i:i + 4] for i in range(0, USER_ID_LENGTH, 4))
+
+
+def generate_user_id() -> str:
+    """ID acak unik buatan sistem (CSPRNG); diulang jika kebetulan sudah dipakai."""
+    while True:
+        uid = normalize_user_id("".join(secrets.choice(USER_ID_ALPHABET) for _ in range(USER_ID_LENGTH)))
+        if not User.query.filter_by(user_id=uid).first():
+            return uid
 
 
 def _clean(value: str, field: str, max_len: int) -> str:
@@ -24,23 +42,19 @@ def _validate_password(password: str) -> None:
         raise ValidationError("Password minimal 8 karakter.")
 
 
-def create_user(username, user_id, full_name, unit, password, is_admin=False) -> User:
+def create_user(username, full_name, unit, password, is_admin=False) -> User:
+    """User ID dibuat otomatis oleh sistem, tidak diketik admin."""
     username = (username or "").strip().lower()
-    user_id = (user_id or "").strip().upper()
     if not _USERNAME_RE.match(username):
         raise ValidationError("Username 3-32 karakter: huruf kecil, angka, titik, underscore.")
-    if not _USER_ID_RE.match(user_id):
-        raise ValidationError("User ID 2-16 karakter: huruf/angka (mis. B001).")
     full_name = _clean(full_name, "Nama lengkap", 100)
     unit = _clean(unit, "Unit/Satuan", 60)
     _validate_password(password)
 
     if User.query.filter_by(username=username).first():
         raise DuplicateUserError("Username sudah dipakai.")
-    if User.query.filter_by(user_id=user_id).first():
-        raise DuplicateUserError("User ID sudah dipakai.")
 
-    user = User(username=username, user_id=user_id, full_name=full_name, unit=unit,
+    user = User(username=username, user_id=generate_user_id(), full_name=full_name, unit=unit,
                 password_hash=hash_password(password), is_admin=is_admin)
     db.session.add(user)
     db.session.commit()
@@ -83,6 +97,14 @@ def update_user(pk: int, full_name=None, unit=None, password=None, is_active=Non
         user.is_active = bool(is_active)
     if is_admin is not None:
         user.is_admin = bool(is_admin)
+    db.session.commit()
+    return user
+
+
+def regenerate_user_id(pk: int) -> User:
+    """Ganti User ID. Pesan yang dikirim untuk ID lama tidak bisa dibuka lagi."""
+    user = get_user(pk)
+    user.user_id = generate_user_id()
     db.session.commit()
     return user
 

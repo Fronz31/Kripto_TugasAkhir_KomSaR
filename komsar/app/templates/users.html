@@ -10,9 +10,10 @@
 <form class="inline" method="post" action="{{ url_for('users.delete', pk=u.id) }}" data-confirm="Hapus pengguna {{ u.username }}?">{{ csrf() }}<button class="btn danger sm" type="submit">Hapus</button></form></td>{% endif %}</tr>
 {% else %}<tr><td colspan="7" class="note">Tidak ada pengguna.</td></tr>{% endfor %}</table></div></div>
 {% if me.is_admin %}<div class="card"><h2>Tambah pengguna</h2><form method="post" action="{{ url_for('users.add') }}">{{ csrf() }}
-  <div class="row"><div><label>Username</label><input type="text" name="username" required></div><div><label>User ID (mis. B001)</label><input type="text" name="user_id" required></div></div>
-  <div class="row"><div><label>Nama lengkap</label><input type="text" name="full_name" required></div><div><label>Unit/Satuan</label><input type="text" name="unit" required></div></div>
+  <div class="row"><div><label>Username</label><input type="text" name="username" required></div><div><label>Unit/Satuan</label><input type="text" name="unit" required></div></div>
+  <label>Nama lengkap</label><input type="text" name="full_name" required>
   <label>Password (min. 8 karakter)</label><input type="password" name="password" autocomplete="new-password" required>
   <label><input type="checkbox" name="is_admin"> Jadikan admin</label>
+  <p class="note">User ID dibuat otomatis oleh sistem dan ditampilkan setelah pengguna ditambahkan.</p>
   <p><button type="submit">Tambah</button></p></form></div>{% endif %}
 {% endblock %}

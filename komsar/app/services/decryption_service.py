@@ -20,6 +20,7 @@ from ..extensions import db
 from ..models.records import (ALL_KINDS, KIND_ASSET, KIND_IMPORTANT_TEXT, KIND_TEXT, STATUS_DECRYPTED)
 from ..models.user import User
 from ..stego.extract import extract_key
+from .user_service import normalize_user_id
 
 
 @dataclass
@@ -42,6 +43,7 @@ class DecryptionCenter:
         delivery, _ = self._authorize(user, delivery_id, expected_kind)
         rid = self._normalize_id(id_input)
         try:
+            self._require_current_id(user, rid)
             secret = extract_key(self._stego_bytes(delivery), rid)
         except (InvalidIDError, StegoError):
             _count_failure(delivery)
@@ -60,6 +62,7 @@ class DecryptionCenter:
         delivery, message = self._authorize(user, delivery_id, expected_kind)
         rid = self._normalize_id(id_input)
         try:
+            self._require_current_id(user, rid)
             if secret_input is None:
                 cek = self._recover_cek(delivery, rid)
             else:
@@ -87,10 +90,16 @@ class DecryptionCenter:
 
     @staticmethod
     def _normalize_id(id_input: str) -> str:
-        rid = (id_input or "").strip().upper()
+        rid = normalize_user_id(id_input)                       # bentuk kanonik sama dengan sisi pengirim (DB)
         if not rid:
             raise ValidationError("User ID wajib diisi.")
         return rid
+
+    @staticmethod
+    def _require_current_id(user: User, rid: str) -> None:
+        """ID lama (sudah di-regenerate admin) ditolak walau masih cocok dengan paket lama."""
+        if rid != user.user_id:
+            raise InvalidIDError("ID tidak sesuai atau gambar steganografi rusak.")
 
     @staticmethod
     def _stego_bytes(delivery) -> bytes:

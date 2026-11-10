@@ -1,8 +1,13 @@
 # Keterbatasan keamanan KomSaR (jujur, bukan klaim siap produksi)
 
-1. **User ID bukan rahasia kuat.** ID dipakai sebagai bagian dari kunci sesuai konsep tugas. Siapa pun yang
-   memegang gambar steganografi *dan* dapat menebak ID penerima (mis. A001, B001) dapat mengekstrak kunci rahasia.
-   Argon2id memperlambat penebakan tetapi tidak menghilangkan risiko. Cara memperkuatnya dibahas belakangan.
+1. **User ID acak, tetapi tetap bukan rahasia kuat.** ID dipakai sebagai bagian dari kunci sesuai konsep tugas.
+   ID kini dibuat sistem: 12 karakter `secrets.choice` dari 31 simbol (tanpa I, L, O, 0, 1), format
+   `XXXX-XXXX-XXXX`, ±59 bit, sehingga tidak lagi bisa ditebak seperti `B001`. Ditambah Argon2id per percobaan,
+   brute force atas satu gambar stego tidak praktis. Keterbatasan yang tersisa: ID disimpan apa adanya di
+   database dan diketahui admin (yang menyerahkannya ke pemilik), sehingga pihak yang membaca database atau
+   mendapat ID yang bocor dan memegang gambar stego tetap bisa mengekstrak kunci rahasia. Jika ID bocor, admin
+   dapat membuat ulang ID: ID lama ditolak Decryption Center, tetapi pesan lama ikut tidak bisa dibuka karena
+   terikat ke ID lama.
 2. **Blockchain bersifat tamper-evident, bukan tamper-proof.** Perubahan isi blok, penyisipan, dan penghapusan
    di tengah rantai terdeteksi. Pihak yang bisa menulis ke penyimpanan dan menghitung ulang seluruh hash
    setelah blok yang diubah dapat membuat rantai tampak konsisten (lihat

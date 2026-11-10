@@ -24,6 +24,8 @@ if __name__ == "__main__":
     with app.app_context():
         created = seed_demo_users()
     if created:
-        print(f"Akun contoh dibuat: {', '.join(created)} | password: {DEMO_PASSWORD}")
+        print(f"Akun contoh dibuat (password: {DEMO_PASSWORD}). User ID untuk Decryption Center:")
+        for username, uid in created:
+            print(f"  {username:<10} {uid}")
     print("Buka http://127.0.0.1:5000")
     app.run(host="127.0.0.1", port=5000, debug=False)

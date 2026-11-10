@@ -10,7 +10,7 @@
     {% for i in items %}<option value="{{ i.delivery_id }}" data-kind="{{ i.kind }}" {{ 'selected' if i.delivery_id == chosen }}>{{ i.label }} · dari {{ i.sender.username }} · {{ i.created_at|dt }}{% if i.file %} · {{ i.file.name }}{% endif %}</option>{% endfor %}</select></div></div>
   <label>Gambar steganografi untuk data ini</label>
   <img id="stego-preview" class="preview{{ '' if chosen else ' hidden' }}" alt="Gambar steganografi" data-url="{{ url_for('decrypt.stego', delivery_id='__ID__', inline=1) }}" src="{% if chosen %}{{ url_for('decrypt.stego', delivery_id=chosen, inline=1) }}{% endif %}">
-  <label>User ID Anda</label><input type="password" name="user_id" autocomplete="off" required>
+  <label>User ID Anda</label><input type="password" name="user_id" autocomplete="off" placeholder="XXXX-XXXX-XXXX" required>
   <p><button type="submit">Ekstrak kunci dari gambar</button></p>
 </form></div>
 {% if step2 %}

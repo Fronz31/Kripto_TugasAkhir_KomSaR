@@ -17,7 +17,7 @@ SECRET = "K123"
 
 
 def _users():
-    return {n: us.create_user(f"{n}01", f"{n[0].upper()}001", n.title(), "Unit", f"password-{n}")
+    return {n: us.create_user(f"{n}01", n.title(), "Unit", f"password-{n}")
             for n in ("andi", "budi", "citra")}
 
 
@@ -111,7 +111,7 @@ def test_data_survives_restart(tmp_path):
         budi = us.get_by_username("budi01")
         items = sorted(svc.messaging.inbox(budi), key=lambda i: i["created_at"])
         assert [i["kind"] for i in items] == ["important_text", "file", "asset"]
-        opened = [svc.decryption.open(budi, i["delivery_id"], "B001") for i in items]
+        opened = [svc.decryption.open(budi, i["delivery_id"], budi.user_id) for i in items]
         assert opened[0].text == "rahasia" and opened[1].data == data and opened[2].data == data
         assert len(svc.chain.blocks()) == 2 and svc.chain.validate().valid  # genesis tidak dibuat ulang
         assert svc.repo.get_delivery(items[0]["delivery_id"]).status == STATUS_DECRYPTED

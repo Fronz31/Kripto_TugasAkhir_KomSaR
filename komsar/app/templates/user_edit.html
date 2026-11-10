@@ -1,7 +1,7 @@
 {% extends 'base.html' %}{% from '_macros.html' import csrf %}
 {% block title %}Edit pengguna{% endblock %}
 {% block content %}
-<h1>Edit {{ user.username }}</h1><div class="sub">Username dan User ID tidak dapat diubah ({{ user.user_id }}).</div>
+<h1>Edit {{ user.username }}</h1><div class="sub">Username tidak dapat diubah. User ID hanya dapat dibuat ulang (lihat di bawah).</div>
 <div class="card"><form method="post">{{ csrf() }}
   <label>Nama lengkap</label><input type="text" name="full_name" value="{{ user.full_name }}" required>
   <label>Unit/Satuan</label><input type="text" name="unit" value="{{ user.unit }}" required>
@@ -9,4 +9,8 @@
   <label><input type="checkbox" name="is_active" {{ 'checked' if user.is_active }}> Aktif</label>
   <label><input type="checkbox" name="is_admin" {{ 'checked' if user.is_admin }}> Admin</label>
   <p><button type="submit">Simpan</button> <a class="btn ghost" href="{{ url_for('users.index') }}">Batal</a></p></form></div>
+<div class="card"><h2>User ID</h2><p>User ID saat ini: <strong>{{ user.user_id }}</strong></p>
+<form method="post" action="{{ url_for('users.regenerate_id', pk=user.id) }}" data-confirm="Buat User ID baru untuk {{ user.username }}? Pesan yang sudah dikirim untuk ID lama tidak dapat dibuka lagi.">{{ csrf() }}
+  <p class="note">Peringatan: setelah ID diganti, pesan/file yang dienkripsi untuk ID lama tidak dapat dibuka lagi.</p>
+  <button class="btn danger" type="submit">Buat ulang User ID</button></form></div>
 {% endblock %}
