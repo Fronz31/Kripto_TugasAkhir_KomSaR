@@ -22,13 +22,25 @@ python scripts/generate_covers.py   # opsional: cover contoh (ganti dengan gamba
 python -m pytest -q
 ```
 
+## Konfigurasi (`.env`)
+| Variabel | Default | Keterangan |
+|---|---|---|
+| `KOMSAR_SECRET_KEY` | (wajib) | kunci sesi Flask |
+| `KOMSAR_DB_MASTER_KEY` | (wajib) | 32 byte base64, lapisan enkripsi pesan penting di database |
+| `DATABASE_URL` | SQLite `instance/komsar.db` | Neon: `postgresql://user:pass@host/db?sslmode=require` (otomatis memakai driver psycopg) |
+| `MAX_FILE_MB` | `10` | batas ukuran file; file disimpan di database |
+
+Semua data (pengguna, pesan, ciphertext file, gambar steganografi, blok blockchain) disimpan di database dan
+bertahan saat server restart. Tabel dibuat otomatis (`db.create_all()`). Database SQLite lama dari versi
+sebelumnya perlu dihapus (`instance/komsar.db`) karena tabel `users` mendapat kolom baru.
+
 ## Status
 - Tahap 2 (modul inti): crypto, stego, auth, user management — selesai
 - Tahap 3 (komunikasi): pesan biasa/penting, file, gambar, multi-penerima, Decryption Center — selesai
 - Tahap 5 (UI Flask): login, dashboard, pengguna, pesan, kirim file, aset penting, dekripsi, profil, Blockchain Records (khusus admin) — selesai
 - Tahap 4 (blockchain): hash chaining SHA-256 (tanpa PoW), satu blok per aset penting, validasi rantai,
   verifikasi integritas sebelum aset dibuka — selesai. Blok tidak ditampilkan ke pengguna (lihat `docs/keamanan.md`)
-  (record disimpan sementara di memori lewat `app/repository.py`; database menyusul)
+  (record disimpan di database lewat `app/repository.py`, blok di tabel `blocks`)
 
 ## Pemakaian service (contoh)
 ```python
@@ -45,5 +57,5 @@ svc.messaging.send_file(andi, ["budi01"], "kontrak.pdf", data, "K123", kind="ass
 svc.assets.list_assets(budi)                 # daftar aset milik user (tanpa blok mentah)
 svc.assets.verify_integrity(budi, asset_id)  # status: verified / ciphertext_modified / chain_broken / ...
 svc.chain.validate()                         # validasi seluruh rantai
-svc.chain.export_json("chain.json")          # lihat blok mentah (sementara, sebelum database)
+svc.chain.export_json("chain.json")          # ekspor blok mentah ke JSON untuk inspeksi
 ```
