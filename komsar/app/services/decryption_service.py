@@ -7,7 +7,6 @@ Jika gagal: error jelas, tanpa plaintext parsial, ciphertext & file sumber tidak
 import hashlib
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Optional
 
 from ..crypto import file_cipher
@@ -17,6 +16,7 @@ from ..crypto.key_wrap import unwrap_cek
 from ..crypto.text import decrypt_text
 from ..errors import (AccessDeniedError, DecryptionError, IntegrityViolationError, InvalidIDError,
                       StegoError, StegoKeyMismatchError, ValidationError)
+from ..extensions import db
 from ..models.records import (ALL_KINDS, KIND_ASSET, KIND_IMPORTANT_TEXT, KIND_TEXT, STATUS_DECRYPTED)
 from ..models.user import User
 from ..stego.extract import extract_key
@@ -44,7 +44,7 @@ class DecryptionCenter:
         try:
             secret = extract_key(self._stego_bytes(delivery), rid)
         except (InvalidIDError, StegoError):
-            delivery.failed_attempts += 1
+            _count_failure(delivery)
             raise
         try:
             return secret.decode("utf-8")
@@ -66,10 +66,11 @@ class DecryptionCenter:
                 cek = self._cek_from_entered_key(delivery, rid, secret_input)
             result = self._decrypt(message, cek)
         except (InvalidIDError, DecryptionError, StegoError):
-            delivery.failed_attempts += 1
+            _count_failure(delivery)
             raise
         delivery.status = STATUS_DECRYPTED
         delivery.decrypted_at = datetime.now(timezone.utc)
+        db.session.commit()
         return result
 
     def _authorize(self, user: User, delivery_id: str, expected_kind: Optional[str]):
@@ -93,10 +94,9 @@ class DecryptionCenter:
 
     @staticmethod
     def _stego_bytes(delivery) -> bytes:
-        stego = Path(delivery.stego_path)
-        if not stego.exists():
+        if not delivery.stego_png:
             raise StegoError("Gambar steganografi tidak ditemukan.")
-        return stego.read_bytes()
+        return delivery.stego_png
 
     def _cek_from_entered_key(self, delivery, rid: str, secret_input: str) -> bytes:
         if not secret_input:
@@ -122,17 +122,22 @@ class DecryptionCenter:
                                     text=decrypt_text(ct, cek))
 
         f = self.repo.get_file(message.file_id)
-        enc = Path(f.enc_path)
-        if not enc.exists():
+        blob = f.ciphertext
+        if not blob:
             raise DecryptionError("File terenkripsi tidak ditemukan.")
         if message.kind == KIND_ASSET:                       # verifikasi integritas SEBELUM dekripsi
             if self.asset_service is not None:
                 report = self.asset_service.check_file(f)    # blockchain: rantai + hash ciphertext + metadata
                 if not report.ok:
                     raise IntegrityViolationError(f"Integritas aset gagal: {report.message}")
-            elif hashlib.sha256(enc.read_bytes()).hexdigest() != f.ciphertext_sha256:
+            elif hashlib.sha256(blob).hexdigest() != f.ciphertext_sha256:
                 raise IntegrityViolationError("Integritas aset gagal: ciphertext tidak cocok dengan hash tercatat.")
-        blob = enc.read_bytes()
-        data = file_cipher.decrypt_bytes(derive_content_keys(cek).file_key, blob, aad=message.id.encode())
+        data = file_cipher.decrypt_bytes(       # buffer di memori; dikembalikan hanya bila semua chunk valid
+            derive_content_keys(cek).file_key, blob, aad=message.id.encode())
         return DecryptionResult(kind=message.kind, is_important=message.kind == KIND_ASSET,
                                 filename=f.original_name, mime=f.mime, data=data)
+
+
+def _count_failure(delivery) -> None:
+    delivery.failed_attempts += 1
+    db.session.commit()

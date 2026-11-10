@@ -12,7 +12,7 @@ from typing import Optional
 
 from ..errors import ValidationError
 from .block import GENESIS_PREV_HASH, Block
-from .store import InMemoryBlockStore
+from .store import SqlBlockStore
 
 
 @dataclass
@@ -25,7 +25,7 @@ class ChainValidation:
 
 class Blockchain:
     def __init__(self, store=None):
-        self.store = store or InMemoryBlockStore()
+        self.store = store or SqlBlockStore()
         with self.store.lock:
             if self.store.last() is None:
                 self.store.append(Block(

@@ -1,6 +1,7 @@
 """Konfigurasi aplikasi. Secret dibaca dari environment/.env, bukan dari source code."""
 import base64
 import os
+import re
 import secrets
 from pathlib import Path
 
@@ -14,18 +15,23 @@ def _int(name: str, default: int) -> int:
     return int(os.environ.get(name, default))
 
 
+def database_url(url) -> str:
+    """Kosong -> SQLite lokal. `postgres://` / `postgresql://` -> driver psycopg 3."""
+    if not url:
+        return f"sqlite:///{BASE_DIR / 'instance' / 'komsar.db'}"
+    return re.sub(r"^postgres(ql)?://", "postgresql+psycopg://", url)
+
+
 class Config:
     SECRET_KEY = os.environ.get("KOMSAR_SECRET_KEY")
     DB_MASTER_KEY_B64 = os.environ.get("KOMSAR_DB_MASTER_KEY")
-    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL") or f"sqlite:///{BASE_DIR / 'instance' / 'komsar.db'}"
+    SQLALCHEMY_DATABASE_URI = database_url(os.environ.get("DATABASE_URL"))
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True}   # Neon memutus koneksi idle (scale to zero)
 
-    STORAGE_DIR = Path(os.environ.get("STORAGE_DIR", BASE_DIR / "storage"))
-    ENCRYPTED_FILES_DIR = STORAGE_DIR / "encrypted_files"
-    STEGO_IMAGES_DIR = STORAGE_DIR / "stego_images"
     COVER_IMAGES_DIR = BASE_DIR / "assets" / "covers"
 
-    MAX_FILE_BYTES = _int("MAX_FILE_MB", 25) * 1024 * 1024
+    MAX_FILE_BYTES = _int("MAX_FILE_MB", 10) * 1024 * 1024
     FILE_ALGO = "chacha20-poly1305"      # file & gambar biasa
     ASSET_ALGO = "aes-256-gcm"           # aset penting
 

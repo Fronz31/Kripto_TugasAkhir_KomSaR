@@ -15,6 +15,11 @@ class User(db.Model):
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    # dipakai fase login (lockout, pendaftaran suara pertama); logikanya menyusul
+    failed_logins = db.Column(db.Integer, default=0, nullable=False)
+    locked_until = db.Column(db.DateTime(timezone=True), nullable=True)
+    must_enroll = db.Column(db.Boolean, default=False, nullable=False)
+    enroll_deadline = db.Column(db.DateTime(timezone=True), nullable=True)
 
     def to_dict(self) -> dict:
         """Tanpa password_hash."""

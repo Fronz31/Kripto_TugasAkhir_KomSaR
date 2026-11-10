@@ -1,23 +1,41 @@
 """Blockchain (hash chaining, tanpa PoW), aset penting, dan verifikasi integritas."""
+import hashlib
 import json
 import os
-from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
-from app.blockchain.block import GENESIS_PREV_HASH
+from app.blockchain.block import GENESIS_PREV_HASH, Block
 from app.blockchain.chain import Blockchain
+from app.blockchain.store import BlockRow, SqlBlockStore
+from app.extensions import db
 from app.errors import AccessDeniedError, DecryptionError, IntegrityViolationError, ValidationError
 from app.models.records import KIND_ASSET, KIND_FILE
-from app.repository import InMemoryRepository
+from app.repository import SqlRepository
 from app.services import user_service as us
-from app.services.asset_service import AssetService, sha256_file
+from app.services.asset_service import AssetService
 from app.services.decryption_service import DecryptionCenter
 from app.services.messaging_service import MessagingService
+from tests.helpers import corrupt
 
 SECRET = "K123"
 H = "a" * 64
+pytestmark = pytest.mark.usefixtures("app")          # blok disimpan di tabel `blocks`
+_COLUMN = {"index": "idx", "metadata": "metadata_json", "recipients": "recipients_json"}
+
+
+def tamper(index, **changes):
+    """Ubah baris blok langsung di database (simulasi penyerang dengan akses DB)."""
+    row = db.session.get(BlockRow, index)
+    for field, value in changes.items():
+        setattr(row, _COLUMN.get(field, field), value)
+    db.session.commit()
+
+
+def delete_block(index):
+    db.session.delete(db.session.get(BlockRow, index))
+    db.session.commit()
 
 
 def new_chain(n=3):
@@ -35,7 +53,7 @@ def test_genesis_and_block_creation():
     assert g.index == 0 and g.previous_hash == GENESIS_PREV_HASH and g.hash == g.compute_hash()
     b = chain.add_block("asset-1", H, {"original_name": "a.pdf"}, {"user_id": "A001"}, [{"user_id": "B001"}])
     assert b.index == 1 and b.previous_hash == g.hash and b.hash == b.compute_hash()
-    assert len(b.hash) == 64 and chain.get_block_by_asset("asset-1") is b
+    assert len(b.hash) == 64 and chain.get_block_by_asset("asset-1") == b
 
 
 def test_valid_chain_links():
@@ -63,14 +81,14 @@ def test_duplicate_asset_and_bad_input_rejected():
 ])
 def test_modified_block_data_detected(field, value):
     chain = new_chain(4)
-    setattr(chain.blocks()[2], field, value)
+    tamper(2, **{field: value})
     v = chain.validate()
     assert not v.valid and v.first_invalid_index == 2
 
 
 def test_modified_previous_hash_detected():
     chain = new_chain(4)
-    chain.blocks()[3].previous_hash = "c" * 64
+    tamper(3, previous_hash="c" * 64)
     assert not chain.validate().valid
 
 
@@ -79,22 +97,38 @@ def test_replaced_block_breaks_next_link():
     b = chain.blocks()[2]
     b.ciphertext_hash = "d" * 64
     b.seal()                                        # penyerang menghitung ulang hash blok itu saja
+    tamper(2, ciphertext_hash=b.ciphertext_hash, hash=b.hash)
     v = chain.validate()
     assert not v.valid and v.first_invalid_index == 3     # tertangkap di blok berikutnya
 
 
 def test_deleted_middle_block_detected():
     chain = new_chain(4)
-    chain.store._blocks.pop(2)
+    delete_block(2)
     assert not chain.validate().valid
 
 
 def test_inserted_block_detected():
     chain = new_chain(3)
-    from app.blockchain.block import Block
-    chain.store._blocks.insert(2, Block(index=2, timestamp="2099-01-01T00:00:00+00:00", asset_id="fake",
-                                        ciphertext_hash=H, previous_hash=chain.blocks()[1].hash).seal())
+    for row in sorted(BlockRow.query.filter(BlockRow.idx >= 2), key=lambda r: -r.idx):   # geser, lalu sisipkan
+        row.idx += 1
+        db.session.flush()
+    chain.store.append(Block(index=2, timestamp="2099-01-01T00:00:00+00:00", asset_id="fake",
+                             ciphertext_hash=H, previous_hash=chain.blocks()[1].hash).seal())
     assert not chain.validate().valid
+
+
+def test_sql_block_store_roundtrip():
+    store = SqlBlockStore()
+    genesis = store.last()                                  # dibuat create_app
+    assert genesis.index == 0 and store.all() == [genesis]
+    b = Block(index=1, timestamp="2026-01-01T00:00:00+00:00", asset_id="x", ciphertext_hash=H,
+              metadata={"original_name": "laporan é.pdf", "size": 5}, sender={"user_id": "A001"},
+              recipients=[{"user_id": "B001"}], previous_hash=genesis.hash).seal()
+    store.append(b)
+    db.session.expire_all()                                 # paksa baca ulang dari DB
+    assert store.last() == b and store.all() == [genesis, b]
+    assert store.all()[1].compute_hash() == b.hash          # JSON bolak-balik tidak mengubah hash
 
 
 def test_export_json(tmp_path):
@@ -105,14 +139,14 @@ def test_export_json(tmp_path):
 
 # ---------------- aset penting ----------------
 @pytest.fixture
-def env(app, tmp_path):
+def env(app):
     u = {n: us.create_user(f"{n}01", f"{n[0].upper()}001", n.title(), f"Unit {n[0].upper()}", f"password-{n}")
          for n in ("andi", "budi", "citra", "deni")}
-    repo, chain = InMemoryRepository(), Blockchain()
+    repo, chain = SqlRepository(), Blockchain()
     assets = AssetService(repo, chain)
     master = app.config["DB_MASTER_KEY"]
-    msg = MessagingService(repo, master, app.config["COVER_IMAGES_DIR"], tmp_path / "enc", tmp_path / "stego",
-                           app.config["MAX_FILE_BYTES"], asset_service=assets)
+    msg = MessagingService(repo, master, app.config["COVER_IMAGES_DIR"], app.config["MAX_FILE_BYTES"],
+                           asset_service=assets)
     return SimpleNamespace(u=u, repo=repo, chain=chain, assets=assets, msg=msg,
                            center=DecryptionCenter(repo, master, assets), master=master)
 
@@ -133,7 +167,7 @@ def test_asset_creates_one_block_with_hash_and_metadata_only(env):
     assert len(bs) == 2                                   # genesis + SATU blok walau 3 penerima
     b = bs[1]
     assert b.asset_id == f.id and f.block_index == 1
-    assert b.ciphertext_hash == sha256_file(f.enc_path) == f.ciphertext_sha256
+    assert b.ciphertext_hash == hashlib.sha256(f.ciphertext).hexdigest() == f.ciphertext_sha256
     assert b.metadata["original_name"] == "kontrak.pdf" and b.metadata["size"] == len(data)
     assert b.sender["user_id"] == "A001" and {r["user_id"] for r in b.recipients} == {"B001", "C001", "D001"}
     dump = json.dumps(b.to_record())
@@ -168,7 +202,7 @@ def test_verify_ok_and_ciphertext_modified(env):
     m, f, _ = send_asset(env)
     b = env.u["budi"]
     assert env.assets.verify_integrity(b, f.id).ok
-    p = Path(f.enc_path); raw = bytearray(p.read_bytes()); raw[40] ^= 1; p.write_bytes(bytes(raw))
+    corrupt(f, 40)
     rep = env.assets.verify_integrity(b, f.id)
     assert not rep.ok and rep.status == "ciphertext_modified"
 
@@ -179,9 +213,9 @@ def test_verify_detects_block_tampering_missing_and_metadata(env):
     f.original_name = "diubah.pdf"                                    # metadata di record diubah
     assert env.assets.verify_integrity(b, f.id).status == "metadata_mismatch"
     f.original_name = "kontrak.pdf"
-    env.chain.blocks()[1].metadata["size"] = 1                        # blok diubah
+    tamper(1, metadata={**env.chain.blocks()[1].metadata, "size": 1})   # blok diubah
     assert env.assets.verify_integrity(b, f.id).status == "chain_broken"
-    env.chain.store._blocks.pop()                                     # blok dihapus
+    delete_block(1)                                                   # blok dihapus
     assert env.assets.verify_integrity(b, f.id).status == "block_missing"
 
 
@@ -197,17 +231,17 @@ def test_decryption_center_refuses_modified_asset(env):
     m, f, _ = send_asset(env)
     b = env.u["budi"]
     d = delivery_of(env, m, b)
-    p = Path(f.enc_path); raw = bytearray(p.read_bytes()); raw[-1] ^= 1; p.write_bytes(bytes(raw))
+    raw = corrupt(f, -1)
     with pytest.raises(IntegrityViolationError) as e:
         env.center.open(b, d.id, "B001")
     assert "berubah" in str(e.value)
-    assert p.read_bytes() == bytes(raw) and d.status != "decrypted"   # ciphertext tidak diubah/dihapus
+    assert env.repo.get_file(f.id).ciphertext == raw and d.status != "decrypted"   # ciphertext tidak diubah/dihapus
 
 
 def test_decryption_center_refuses_when_chain_tampered(env):
     m, f, _ = send_asset(env)
     b = env.u["budi"]
-    env.chain.blocks()[1].recipients = [{"user_id": "Z999"}]
+    tamper(1, recipients=[{"user_id": "Z999"}])
     with pytest.raises(IntegrityViolationError):
         env.center.open(b, delivery_of(env, m, b).id, "B001")
 
@@ -217,9 +251,10 @@ def test_known_limitation_full_rewrite_not_detected_but_aead_still_protects(env)
     setelahnya lolos dari validasi rantai, tetapi AEAD tetap menolak ciphertext yang diubah."""
     m, f, _ = send_asset(env)
     b = env.u["budi"]
-    p = Path(f.enc_path); raw = bytearray(p.read_bytes()); raw[40] ^= 1; p.write_bytes(bytes(raw))
+    raw = corrupt(f, 40)
     blk = env.chain.blocks()[1]
-    blk.ciphertext_hash = sha256_file(p); blk.seal()                  # hitung ulang (blok ini terakhir)
+    blk.ciphertext_hash = hashlib.sha256(raw).hexdigest(); blk.seal()                  # hitung ulang (blok ini terakhir)
+    tamper(1, ciphertext_hash=blk.ciphertext_hash, hash=blk.hash)
     assert env.assets.verify_integrity(b, f.id).ok                    # batas: tidak terdeteksi oleh blockchain
     with pytest.raises(DecryptionError):                              # tetapi isi yang diubah tak bisa didekripsi
         env.center.open(b, delivery_of(env, m, b).id, "B001")
