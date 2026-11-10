@@ -137,6 +137,25 @@ def test_wrong_dongle_rejected(web):
     assert us.get_by_username("andi01").failed_logins == 0             # dongle salah bukan tebakan password
 
 
+def test_unknown_inactive_or_locked_user_still_runs_argon2(web, monkeypatch):
+    """Cegah enumerasi username lewat timing: cabang tanpa akun valid tetap memverifikasi hash dummy."""
+    from app.auth import password as pw_mod
+    calls = []
+    monkeypatch.setattr(pw_mod, "dummy_verify", lambda p: calls.append(p) or False)
+    us.create_user("nonaktif01", "Non", "X", PW)
+    u = us.get_by_username("nonaktif01")
+    u.is_active = False
+    andi = us.get_by_username("andi01")
+    andi.locked_until = datetime.now(timezone.utc) + timedelta(minutes=5)
+    from app.extensions import db
+    db.session.commit()
+    c = web.test_client()
+    for name in ("tidakada01", "nonaktif01", "andi01"):
+        assert GENERIC in text(login_step1(web, c, name, "tebakan", dongle()))
+    assert calls == ["tebakan"] * 3
+    assert authenticate("tidakada01", "x") is None
+
+
 def test_password_lockout_after_five(web):
     enroll_voice(web, us.get_by_username("andi01"))
     c = web.test_client()

@@ -147,10 +147,12 @@ def voice_verify(user):
     data = _body()
 
     def run():
-        if svc().voice.verify(user, _wav(data.get("wav_b64")), data.get("challenge_id")):
-            audit(VOICE_VERIFY_SUCCESS, target=user.username, user=user)
+        ok, score = svc().voice.verify_score(user, _wav(data.get("wav_b64")), data.get("challenge_id"))
+        score = None if score is None else round(score, 3)      # untuk kalibrasi threshold (docs/uji-manual.md)
+        if ok:
+            audit(VOICE_VERIFY_SUCCESS, target=user.username, user=user, score=score)
             return _finish_login(user, "voice")
-        audit(VOICE_VERIFY_FAILED, target=user.username, user=user)
+        audit(VOICE_VERIFY_FAILED, target=user.username, user=user, score=score)
         # Hitungan per sesi pending (3x) + hitungan akun (5x gabungan password/suara) agar
         # mengulang langkah 1 tidak mereset batas percobaan suara.
         session["voice_fails"] = session.get("voice_fails", 0) + 1

@@ -246,6 +246,28 @@ def test_decryption_center_refuses_when_chain_tampered(env):
         env.center.open(b, delivery_of(env, m, b).id, env.u["budi"].user_id)
 
 
+def test_raw_sql_tamper_like_neon_console(env):
+    """Simulasi uji manual: UPDATE langsung lewat SQL (bukan ORM), lalu sesi dibaca ulang dari DB."""
+    from sqlalchemy import text
+    m, f, _ = send_asset(env)
+    b = env.u["budi"]
+    raw = bytearray(f.ciphertext)
+    raw[50] ^= 0xFF
+    db.session.execute(text("UPDATE files SET ciphertext = :c WHERE id = :i"), {"c": bytes(raw), "i": f.id})
+    db.session.commit()
+    db.session.expire_all()
+    assert env.assets.verify_integrity(b, f.id).status == "ciphertext_modified"
+    with pytest.raises(IntegrityViolationError):
+        env.center.open(b, delivery_of(env, m, b).id, b.user_id)
+    assert delivery_of(env, m, b).status != "decrypted"
+
+    db.session.execute(text("UPDATE blocks SET asset_id = 'palsu' WHERE idx = 1"))
+    db.session.commit()
+    db.session.expire_all()
+    v = env.chain.validate()
+    assert not v.valid and v.first_invalid_index == 1
+
+
 def test_known_limitation_full_rewrite_not_detected_but_aead_still_protects(env):
     """Dokumentasi batas tamper-evident: penyerang yang menulis ulang ciphertext DAN seluruh blok
     setelahnya lolos dari validasi rantai, tetapi AEAD tetap menolak ciphertext yang diubah."""

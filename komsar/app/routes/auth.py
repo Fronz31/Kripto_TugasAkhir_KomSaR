@@ -1,5 +1,6 @@
 from flask import Blueprint, current_app, flash, g, redirect, render_template, request, session, url_for
 
+from ..auth import password as password_mod
 from ..auth.password import verify_password
 from ..auth.service import (complete_login, current_user, enroll_expired, find_user, is_locked, logout_user,
                             pending_state, record_failure, start_pending)
@@ -46,8 +47,10 @@ def login():
     username = f.get("username", "").strip().lower()[:32]
     user = find_user(username)
     if user is None or not user.is_active:
+        password_mod.dummy_verify(f.get("password", ""))    # samakan waktu respons dengan akun yang ada
         return _fail(username, "password")
     if is_locked(user):
+        password_mod.dummy_verify(f.get("password", ""))
         return _fail(username, "locked")
     if not verify_password(user.password_hash, f.get("password", "")):
         if record_failure(user):

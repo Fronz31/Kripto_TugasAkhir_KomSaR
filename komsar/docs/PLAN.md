@@ -4,6 +4,28 @@ Tanggal: 2026-11-10
 Cakupan: implementasi kode saja. Laporan dan slide presentasi dikerjakan terpisah.
 Riset pendukung: [`riset-desktop-voice-db.md`](riset-desktop-voice-db.md)
 
+## Status implementasi
+
+| Fase | Status |
+|---|---|
+| 1. Database PostgreSQL/SQLite (record, file, blok di DB) | Selesai, teruji otomatis |
+| 2. User ID acak | Selesai, teruji otomatis |
+| 3. Audit log, status `failed`, percakapan, riwayat file, Blockchain Records khusus admin | Selesai, teruji otomatis |
+| 4. Dongle flashdisk | Selesai, teruji otomatis |
+| 5. Verifikasi suara (SpeechBrain, di server) | Selesai, teruji dengan `FakeVoiceVerifier` |
+| 6. Login tiga faktor, login pertama, lockout | Selesai, teruji otomatis |
+| 7. Aplikasi desktop (pywebview) | Selesai, teruji otomatis tanpa GUI/mikrofon/flashdisk |
+| 8. Dockerfile + panduan deploy ([`deploy.md`](deploy.md)) | Selesai, belum di-deploy sungguhan |
+| 9. Hardening, test tambahan, dokumentasi, [`uji-manual.md`](uji-manual.md) | Selesai |
+
+Belum diverifikasi (perlu dijalankan dengan checklist [`uji-manual.md`](uji-manual.md)):
+- Akurasi SpeechBrain ECAPA dengan suara tim dan kalibrasi `VOICE_THRESHOLD` (skor tercatat di audit log).
+- Database Neon sungguhan (koneksi pooled, kuota storage, bangun dari *scale to zero*).
+- InstaCloud sungguhan (build image, RAM, waktu bangun, jumlah hop proxy, perilaku secret).
+- GUI pywebview, rekam mikrofon, dan baca/tulis flashdisk di laptop Windows tim.
+
+Keterbatasan keamanan versi akhir: [`keamanan.md`](keamanan.md).
+
 ---
 
 ## 1. Keputusan yang Sudah Disepakati
