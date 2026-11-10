@@ -23,3 +23,42 @@ if (preview && target) {
     preview.classList.remove("hidden");
   });
 }
+
+// ---- Dongle (hanya di aplikasi desktop KomSaR / pywebview) ----
+var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+window.komsar = {
+  postJSON: function (url, body) {
+    return fetch(url, {
+      method: "POST", credentials: "same-origin",
+      headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfMeta ? csrfMeta.content : "" },
+      body: JSON.stringify(body)
+    }).then(function (r) { return r.json().catch(function () { return {}; }); });
+  },
+  whenDesktop: function (fn) {
+    if (window.pywebview && window.pywebview.api) fn();
+    else window.addEventListener("pywebviewready", fn);
+  }
+};
+
+function forceLogout() {     // /logout hanya menerima POST + CSRF
+  var f = document.createElement("form");
+  f.method = "post"; f.action = "/logout";
+  var i = document.createElement("input");
+  i.type = "hidden"; i.name = "csrf_token"; i.value = csrfMeta.content;
+  f.appendChild(i); document.body.appendChild(f); f.submit();
+}
+
+if (csrfMeta) {              // meta csrf-token hanya ada saat login
+  window.komsar.whenDesktop(function () {
+    var beat = function () {
+      window.pywebview.api.read_dongle().then(function (d) {
+        if (!d || d.error) return forceLogout();
+        return window.komsar.postJSON("/api/dongle/heartbeat", d).then(function (r) {
+          if (!r.ok) forceLogout();
+        });
+      }).catch(function () { /* jaringan putus: server mengunci sesi setelah timeout */ });
+    };
+    beat();
+    setInterval(beat, 30000);
+  });
+}
