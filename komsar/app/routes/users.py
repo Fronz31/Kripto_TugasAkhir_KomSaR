@@ -2,6 +2,8 @@ from flask import Blueprint, flash, g, redirect, render_template, request, url_f
 
 from ..errors import KomSaRError
 from ..services import user_service as us
+from ..services.audit_service import (USER_CREATE, USER_DELETE, USER_REGENERATE_ID, USER_UPDATE,
+                                      audit)
 from ._helpers import admin_required, login_required, svc
 
 bp = Blueprint("users", __name__, url_prefix="/users")
@@ -21,6 +23,7 @@ def add():
     try:
         user = us.create_user(f.get("username"), f.get("full_name"), f.get("unit"),
                               f.get("password"), is_admin=bool(f.get("is_admin")))
+        audit(USER_CREATE, target=user.username, is_admin=user.is_admin)
         flash(f"Pengguna berhasil ditambahkan. User ID: {user.user_id} (serahkan kepada pemiliknya).", "success")
     except KomSaRError as e:
         flash(str(e), "error")
@@ -42,6 +45,8 @@ def edit(pk):
             is_admin = bool(f.get("is_admin")) or user.id == g.user.id
             us.update_user(pk, full_name=f.get("full_name"), unit=f.get("unit"),
                            password=f.get("password") or None, is_active=is_active, is_admin=is_admin)
+            audit(USER_UPDATE, target=user.username, is_active=is_active, is_admin=is_admin,
+                  password_changed=bool(f.get("password")))
             flash("Data pengguna diperbarui.", "success")
             return redirect(url_for("users.index"))
         except KomSaRError as e:
@@ -54,6 +59,7 @@ def edit(pk):
 def regenerate_id(pk):
     try:
         user = us.regenerate_user_id(pk)
+        audit(USER_REGENERATE_ID, target=user.username)        # ID baru tidak pernah dicatat
         flash(f"User ID baru untuk {user.username}: {user.user_id}. Pesan untuk ID lama tidak dapat dibuka lagi.",
               "success")
     except KomSaRError as e:
@@ -72,7 +78,9 @@ def delete(pk):
         elif repo.inbox(pk) or repo.sent_messages(pk):
             flash("Pengguna memiliki riwayat pesan/file, tidak dapat dihapus. Nonaktifkan saja.", "error")
         else:
+            username = user.username
             us.delete_user(pk)
+            audit(USER_DELETE, target=username)
             flash("Pengguna dihapus.", "success")
     except KomSaRError as e:
         flash(str(e), "error")

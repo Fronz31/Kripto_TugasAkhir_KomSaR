@@ -2,7 +2,7 @@ from flask import Blueprint, flash, g, redirect, render_template, request, url_f
 
 from ..errors import KomSaRError
 from ..models.records import FILE_KINDS
-from ._helpers import flash_partial_failure, login_required, parse_usernames, svc
+from ._helpers import after_send, login_required, parse_usernames, svc
 
 bp = Blueprint("transfer", __name__)
 KINDS = {"file": "File / Dokumen", "image": "Gambar", "asset": "Aset Penting"}
@@ -28,7 +28,7 @@ def send():
         message = svc().messaging.send_file(g.user, parse_usernames(f.get("recipients", "")), up.filename, up.stream,
                                             f.get("secret", ""), kind=kind)
         flash(f"{KINDS.get(kind, 'File')} berhasil dienkripsi dan dikirim.", "success")
-        flash_partial_failure(message)
+        after_send(message)
     except KomSaRError as e:
         flash(str(e), "error")
     return redirect(url_for("transfer.index"))

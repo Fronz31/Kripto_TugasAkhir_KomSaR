@@ -4,6 +4,7 @@ from ..auth.password import verify_password
 from ..auth.service import authenticate, current_user, login_user, logout_user
 from ..errors import KomSaRError
 from ..services import user_service as us
+from ..services.audit_service import LOGIN_FAILED, LOGIN_SUCCESS, LOGOUT, audit
 from ._helpers import login_required, svc
 
 bp = Blueprint("auth", __name__)
@@ -19,10 +20,13 @@ def login():
     if current_user():
         return redirect(url_for("dashboard.index"))
     if request.method == "POST":
-        user = authenticate(request.form.get("username", ""), request.form.get("password", ""))
+        username = request.form.get("username", "")
+        user = authenticate(username, request.form.get("password", ""))
         if user:
             login_user(user)
+            audit(LOGIN_SUCCESS, target=user.username, user=user, factor="password")
             return redirect(url_for("dashboard.index"))
+        audit(LOGIN_FAILED, target=username.strip().lower()[:32], factor="password")
         flash("Username atau password salah.", "error")
     return render_template("login.html")
 
@@ -31,6 +35,7 @@ def login():
 @login_required
 def logout():
     svc().cache.clear_user(g.user.id)       # hapus hasil dekripsi dari memori
+    audit(LOGOUT, target=g.user.username)
     logout_user()
     flash("Anda telah keluar.", "info")
     return redirect(url_for("auth.login"))

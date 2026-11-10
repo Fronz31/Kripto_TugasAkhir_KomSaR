@@ -15,7 +15,8 @@
   <a class="nav" href="{{ url_for('decrypt.center') }}">Dekripsi</a>
   <a class="nav" href="{{ url_for('users.index') }}">Pengguna</a>
   {% if me.is_admin %}<a class="nav" href="{{ url_for('admin.chain') }}">Blockchain Records</a>
-  <a class="nav" href="{{ url_for('admin.dongles') }}">Dongle</a>{% endif %}
+  <a class="nav" href="{{ url_for('admin.dongles') }}">Dongle</a>
+  <a class="nav" href="{{ url_for('admin.audit_log') }}">Audit Log</a>{% endif %}
   <a class="nav" href="{{ url_for('auth.profile') }}">Profil</a>
   <div class="who">{{ me.full_name }}<br>{{ me.unit }}
     <form method="post" action="{{ url_for('auth.logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn ghost sm" type="submit">Keluar</button></form></div>

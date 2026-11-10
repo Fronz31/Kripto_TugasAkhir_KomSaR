@@ -6,6 +6,7 @@ from functools import wraps
 from flask import Blueprint, current_app, jsonify, request, session
 
 from ..auth.service import current_user
+from ..services.audit_service import DONGLE_REGISTER, audit
 from ._helpers import svc
 
 bp = Blueprint("api", __name__, url_prefix="/api")
@@ -64,6 +65,7 @@ def dongle_register(user):
         dongle_id, token = svc().dongles.register(data.get("label"), data.get("volume_serial"), user)
     except ValueError as e:
         return jsonify(error=str(e)), 400
+    audit(DONGLE_REGISTER, target=dongle_id, user=user)            # token tidak pernah dicatat
     return jsonify(dongle_id=dongle_id, token=token)
 
 

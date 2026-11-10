@@ -1,7 +1,7 @@
 from flask import Blueprint, flash, g, redirect, render_template, request, url_for
 
 from ..errors import KomSaRError
-from ._helpers import flash_partial_failure, login_required, parse_usernames, svc
+from ._helpers import after_send, login_required, parse_usernames, svc
 
 bp = Blueprint("chat", __name__)
 
@@ -24,7 +24,7 @@ def send():
         message = svc().messaging.send_text(g.user, parse_usernames(f.get("recipients", "")), f.get("message", ""),
                                             f.get("secret", ""), important=bool(f.get("important")))
         flash("Pesan terenkripsi berhasil dikirim; gambar steganografi dibuat untuk setiap penerima.", "success")
-        flash_partial_failure(message)
+        after_send(message)
     except KomSaRError as e:
         flash(str(e), "error")
     return redirect(url_for("chat.index"))
