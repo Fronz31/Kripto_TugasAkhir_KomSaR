@@ -11,7 +11,7 @@ from flask import abort, current_app, session
 
 from ..extensions import db
 from ..models.user import User
-from .password import verify_password
+from .password import dummy_verify, verify_password
 
 SESSION_KEY = "user_pk"
 PENDING_TTL = 180               # detik antara langkah 1 dan 2
@@ -37,6 +37,7 @@ def authenticate(username: str, password: str):
     """Kembalikan User jika kredensial valid dan akun aktif, selain itu None (tanpa lockout)."""
     user = find_user(username)
     if user is None or not user.is_active:
+        dummy_verify(password or "")
         return None
     return user if verify_password(user.password_hash, password or "") else None
 

@@ -14,3 +14,13 @@ def verify_password(password_hash: str, password: str) -> bool:
         return _ph.verify(password_hash, password)
     except (VerifyMismatchError, InvalidHashError):
         return False
+
+
+# Hash tetap untuk username tak dikenal/nonaktif/terkunci: waktu respons setara dengan akun yang ada.
+_DUMMY_HASH = _ph.hash("komsar-dummy-password")
+
+
+def dummy_verify(password: str) -> bool:
+    """Verifikasi Argon2 terhadap hash dummy agar username tidak bisa dienumerasi lewat timing. Selalu False."""
+    verify_password(_DUMMY_HASH, password)
+    return False
