@@ -4,3 +4,5 @@ __pycache__/
 storage/encrypted_files/*
 storage/stego_images/*
 *.db
+.venv/
+models/
