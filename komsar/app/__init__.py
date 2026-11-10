@@ -29,7 +29,7 @@ def create_app(config_class=Config) -> Flask:
 
     app.config.setdefault("MAX_CONTENT_LENGTH", app.config["MAX_FILE_BYTES"] + 2 * 1024 * 1024)
     db.init_app(app)
-    from .models import user  # noqa: F401  (daftarkan model)
+    from .models import security, user  # noqa: F401  (daftarkan model)
     with app.app_context():
         db.create_all()
 
