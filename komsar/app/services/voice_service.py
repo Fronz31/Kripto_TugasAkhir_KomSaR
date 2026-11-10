@@ -82,12 +82,17 @@ class VoiceService:
         db.session.commit()
 
     def verify(self, user, wav: bytes, challenge_id) -> bool:
+        return self.verify_score(user, wav, challenge_id)[0]
+
+    def verify_score(self, user, wav: bytes, challenge_id) -> tuple[bool, float | None]:
+        """(lolos, skor cosine). Skor dicatat di audit log untuk kalibrasi VOICE_THRESHOLD."""
         self._consume(user, "verify", challenge_id)
         profile = db.session.get(VoiceProfile, user.id)
         if profile is None:
-            return False
+            return False, None
         stored = np.frombuffer(decrypt_from_db(self.master_key, profile.embedding_enc), dtype="<f4")
-        return self.verifier.score(self.verifier.embed(wav), stored) >= self.threshold
+        score = float(self.verifier.score(self.verifier.embed(wav), stored))
+        return score >= self.threshold, score
 
     def reset(self, user, admin) -> None:
         if admin is None or not admin.is_admin:

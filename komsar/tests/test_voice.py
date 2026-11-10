@@ -196,6 +196,10 @@ def test_api_enroll_and_verify(web):
     assert r.status_code == 403 and r.get_json() == {"ok": False}
     assert verify(b64(make_wav(ANDI, 7))).get_json() == {"ok": True}
     assert c.get("/dashboard").status_code == 200
+    from app.models.security import AuditLog
+    scores = {r.action: r.meta["score"] for r in AuditLog.query if r.action.startswith("voice_verify")}
+    thr = web.config["VOICE_THRESHOLD"]
+    assert scores["voice_verify_failed"] < thr <= scores["voice_verify_success"]   # skor untuk kalibrasi
 
 
 def test_admin_reset_route(web):
