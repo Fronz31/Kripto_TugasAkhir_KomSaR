@@ -2,25 +2,23 @@
 import io
 import os
 import re
-from pathlib import Path
 
 import pytest
 from PIL import Image
 
 from app import create_app
 from app.config import TestConfig
+from app.models.records import DeliveryRecord, FileRecord
 from app.services import user_service as us
+from tests.helpers import corrupt
 
 PW = "komsar123"
 SECRET = "K123"
 
 
 @pytest.fixture
-def web(tmp_path):
-    class C(TestConfig):
-        ENCRYPTED_FILES_DIR = tmp_path / "enc"
-        STEGO_IMAGES_DIR = tmp_path / "stego"
-    app = create_app(C)
+def web():
+    app = create_app(TestConfig)
     with app.app_context():
         us.create_user("admin01", "ADM1", "Administrator", "Pusat", PW, is_admin=True)
         for n in ("andi", "budi", "citra"):
@@ -188,9 +186,7 @@ def test_asset_list_integrity_and_tamper(web):
     page = html(budi.get("/assets"))
     assert "kontrak.pdf" in page and "Terverifikasi" in page
     assert "previous_hash" not in page and "Blockchain Records" not in page      # blok mentah tidak tampil ke user
-    svc = web.extensions["komsar"]
-    f = next(iter(svc.repo._files.values()))
-    p = Path(f.enc_path); raw = bytearray(p.read_bytes()); raw[40] ^= 1; p.write_bytes(bytes(raw))
+    corrupt(FileRecord.query.one(), 40)
     assert "Bermasalah" in html(budi.get("/assets"))
     out = decrypt(budi, delivery_id(web, "budi01"), "B001")
     assert "Integritas aset gagal" in out and "Berhasil didekripsi" not in out
@@ -240,7 +236,7 @@ def test_recipients_are_typed_usernames(web):
     assert 'type="text" name="recipients"' in page and 'type="checkbox" name="recipients"' not in page
     assert "berhasil dikirim" in html(post(andi, "/chat/send", {"recipients": "budi01, citra01;BUDI01",
                                                                "message": "halo", "secret": SECRET}))
-    assert len(web.extensions["komsar"].repo._deliveries) == 2                  # duplikat diabaikan
+    assert DeliveryRecord.query.count() == 2                  # duplikat diabaikan
     assert "tidak ditemukan" in html(post(andi, "/chat/send", {"recipients": "budi01, hantu99",
                                                               "message": "halo", "secret": SECRET}))
 

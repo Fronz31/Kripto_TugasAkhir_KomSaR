@@ -17,8 +17,6 @@ def create_app(config_class=Config) -> Flask:
         )
     app.config["DB_MASTER_KEY"] = load_db_master_key(app.config)
 
-    for key in ("ENCRYPTED_FILES_DIR", "STEGO_IMAGES_DIR"):
-        Path(app.config[key]).mkdir(parents=True, exist_ok=True)
     (Path(app.root_path).parent / "instance").mkdir(exist_ok=True)
 
     set_kdf_params(KDFParams(

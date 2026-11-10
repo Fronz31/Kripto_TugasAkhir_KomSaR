@@ -29,9 +29,6 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True}   # Neon memutus koneksi idle (scale to zero)
 
-    STORAGE_DIR = Path(os.environ.get("STORAGE_DIR", BASE_DIR / "storage"))
-    ENCRYPTED_FILES_DIR = STORAGE_DIR / "encrypted_files"
-    STEGO_IMAGES_DIR = STORAGE_DIR / "stego_images"
     COVER_IMAGES_DIR = BASE_DIR / "assets" / "covers"
 
     MAX_FILE_BYTES = _int("MAX_FILE_MB", 10) * 1024 * 1024

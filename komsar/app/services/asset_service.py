@@ -5,8 +5,6 @@ Blok mentah dapat dilihat lewat `list_blocks()` (admin/pengecekan) atau di penyi
 """
 import hashlib
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Optional
 
 from ..errors import AccessDeniedError
 from ..extensions import db
@@ -28,14 +26,6 @@ class IntegrityReport:
     message: str
 
 
-def sha256_file(path) -> str:
-    h = hashlib.sha256()
-    with open(path, "rb") as f:
-        for chunk in iter(lambda: f.read(1024 * 1024), b""):
-            h.update(chunk)
-    return h.hexdigest()
-
-
 def identity(user: User) -> dict:
     return {"user_id": user.user_id, "username": user.username, "unit": user.unit}
 
@@ -55,8 +45,7 @@ class AssetService:
 
     # ---- verifikasi --------------------------------------------------------
     def check_file(self, f: FileRecord) -> IntegrityReport:
-        path = Path(f.enc_path)
-        if not path.exists():
+        if not f.ciphertext:
             return IntegrityReport(False, STATUS_CIPHERTEXT_MISSING, "File ciphertext aset tidak ditemukan.")
         block = self.chain.get_block_by_asset(f.id)
         if block is None:
@@ -65,7 +54,7 @@ class AssetService:
         if not validation.valid:
             return IntegrityReport(False, STATUS_CHAIN_BROKEN,
                                    "Rantai blockchain tidak valid: " + "; ".join(validation.errors[:3]))
-        if sha256_file(path) != block.ciphertext_hash:
+        if hashlib.sha256(f.ciphertext).hexdigest() != block.ciphertext_hash:
             return IntegrityReport(False, STATUS_CIPHERTEXT_MODIFIED,
                                    "Ciphertext aset telah berubah (hash tidak cocok dengan catatan blockchain).")
         md = block.metadata

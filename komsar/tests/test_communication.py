@@ -1,7 +1,6 @@
 """Pesan biasa & penting, file, gambar, aset, multi-penerima, Decryption Center."""
 import io
 import os
-from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -11,28 +10,27 @@ from app.crypto import file_cipher
 from app.crypto.db_layer import decrypt_from_db
 from app.errors import (AccessDeniedError, DecryptionError, FileTooLargeError, IntegrityViolationError,
                         InvalidIDError, UserNotFoundError, ValidationError)
-from app.models.records import (KIND_ASSET, KIND_FILE, KIND_IMAGE, KIND_IMPORTANT_TEXT, KIND_TEXT,
+from app.models.records import (DeliveryRecord, FileRecord, KIND_ASSET, KIND_FILE, KIND_IMAGE, KIND_IMPORTANT_TEXT, KIND_TEXT,
                                 STATUS_DECRYPTED, STATUS_DELIVERED, STATUS_SENT)
-from app.repository import InMemoryRepository
+from app.repository import SqlRepository
 from app.services import user_service as us
 from app.services.decryption_service import DecryptionCenter
 from app.services.messaging_service import MessagingService
 from app.stego.extract import extract_key
+from tests.helpers import corrupt
 
 SECRET = "K123"
 PLAIN = "Pergerakan pasukan dimulai pukul 05.00"
 
 
 @pytest.fixture
-def env(app, tmp_path):
+def env(app):
     u = {n: us.create_user(f"{n}01", f"{n[0].upper()}001", n.title(), f"Unit {n[0].upper()}", f"password-{n}")
          for n in ("andi", "budi", "citra", "deni")}
-    repo = InMemoryRepository()
+    repo = SqlRepository()
     master = app.config["DB_MASTER_KEY"]
-    msg = MessagingService(repo, master, app.config["COVER_IMAGES_DIR"], tmp_path / "enc", tmp_path / "stego",
-                           app.config["MAX_FILE_BYTES"])
-    return SimpleNamespace(u=u, repo=repo, msg=msg, center=DecryptionCenter(repo, master), master=master,
-                           tmp=tmp_path)
+    msg = MessagingService(repo, master, app.config["COVER_IMAGES_DIR"], app.config["MAX_FILE_BYTES"])
+    return SimpleNamespace(u=u, repo=repo, msg=msg, center=DecryptionCenter(repo, master), master=master)
 
 
 def delivery_of(env, message, user):
@@ -124,10 +122,10 @@ def test_multiple_recipients_independent(env):
     a = env.u["andi"]
     m = env.msg.send_text(a, ["budi01", "citra01", "deni01", "BUDI01"], PLAIN, SECRET)   # duplikat diabaikan
     ds = env.repo.deliveries_for_message(m.id)
-    assert len(ds) == 3 and len({d.stego_path for d in ds}) == 3 and len({d.wrapped_key for d in ds}) == 3
+    assert len(ds) == 3 and len({d.stego_png for d in ds}) == 3 and len({d.wrapped_key for d in ds}) == 3
     for name, rid in (("budi", "B001"), ("citra", "C001"), ("deni", "D001")):
         user = env.u[name]
-        assert extract_key(Path(delivery_of(env, m, user).stego_path).read_bytes(), rid) == SECRET.encode()
+        assert extract_key(delivery_of(env, m, user).stego_png, rid) == SECRET.encode()
         assert env.center.open(user, delivery_of(env, m, user).id, rid).text == PLAIN
     assert len(env.repo.deliveries_for_message(m.id)) == 3 and env.repo.get_message(m.id).ciphertext  # satu ciphertext
 
@@ -137,14 +135,14 @@ def test_recipient_id_cannot_open_other_package_even_with_access(env):
     m = env.msg.send_text(a, ["budi01", "citra01"], PLAIN, SECRET)
     d_c = delivery_of(env, m, c)
     with pytest.raises(InvalidIDError):                 # andaikan Budi memiliki paket Citra: ID B001 tidak membukanya
-        extract_key(Path(d_c.stego_path).read_bytes(), "B001")
+        extract_key(d_c.stego_png, "B001")
 
 
 def test_unknown_recipient_saves_nothing(env):
     a = env.u["andi"]
     with pytest.raises(UserNotFoundError):
         env.msg.send_text(a, ["budi01", "hantu99"], PLAIN, SECRET)
-    assert env.repo.sent_messages(a.id) == [] and not list((env.tmp / "stego").glob("*"))
+    assert env.repo.sent_messages(a.id) == [] and DeliveryRecord.query.count() == 0
     with pytest.raises(ValidationError):
         env.msg.send_text(a, [], PLAIN, SECRET)
     with pytest.raises(ValidationError):
@@ -170,12 +168,12 @@ def test_file_roundtrip_multi_recipient(env):
     data = b"%PDF-1.7\n" + os.urandom(150_000)
     m = env.msg.send_file(a, ["budi01", "citra01"], "Laporan Harian.pdf", data, SECRET)
     f = env.repo.get_file(m.file_id)
-    enc = Path(f.enc_path).read_bytes()
+    enc = f.ciphertext
     assert m.kind == KIND_FILE and f.algo == file_cipher.ALGO_CHACHA20 and b"%PDF" not in enc
     for name, rid in (("budi", "B001"), ("citra", "C001")):
         res = env.center.open(env.u[name], delivery_of(env, m, env.u[name]).id, rid)
         assert res.data == data and res.filename == "Laporan Harian.pdf" and res.mime == "application/pdf"
-    assert Path(f.enc_path).read_bytes() == enc            # ciphertext tidak berubah
+    assert env.repo.get_file(f.id).ciphertext == enc            # ciphertext tidak berubah
 
 
 def test_file_validation(env):
@@ -186,7 +184,7 @@ def test_file_validation(env):
         env.msg.send_file(a, ["budi01"], "kosong.pdf", b"", SECRET)
     with pytest.raises(FileTooLargeError):
         env.msg.send_file(a, ["budi01"], "besar.pdf", os.urandom(1024 * 1024 + 1), SECRET)
-    assert not list((env.tmp / "enc").glob("*")) and not list((env.tmp / "stego").glob("*"))
+    assert FileRecord.query.count() == 0 and DeliveryRecord.query.count() == 0
     m = env.msg.send_file(a, ["budi01"], "../../etc/catatan.txt", b"halo", SECRET)
     assert env.repo.get_file(m.file_id).original_name == "catatan.txt"       # path traversal dibuang
 
@@ -194,11 +192,10 @@ def test_file_validation(env):
 def test_tampered_file_detected_and_unchanged(env):
     a, b = env.u["andi"], env.u["budi"]
     m = env.msg.send_file(a, ["budi01"], "data.csv", os.urandom(5000), SECRET)
-    p = Path(env.repo.get_file(m.file_id).enc_path)
-    raw = bytearray(p.read_bytes()); raw[60] ^= 1; p.write_bytes(bytes(raw))
+    raw = corrupt(env.repo.get_file(m.file_id), 60)
     with pytest.raises(DecryptionError):
         env.center.open(b, delivery_of(env, m, b).id, "B001")
-    assert p.read_bytes() == bytes(raw)
+    assert env.repo.get_file(m.file_id).ciphertext == raw
 
 
 # ---------------- gambar ----------------
@@ -207,12 +204,12 @@ def test_image_transfer_distinct_from_stego(env):
     png = make_png()
     m = env.msg.send_file(a, ["budi01"], "foto.png", png, SECRET, kind=KIND_IMAGE)
     d, f = delivery_of(env, m, b), env.repo.get_file(m.file_id)
-    assert d.stego_path != f.enc_path                        # dua file berbeda
-    assert Path(f.enc_path).read_bytes()[:4] == b"KSF1" and Path(d.stego_path).read_bytes()[:4] == b"\x89PNG"
+    assert d.stego_png != f.ciphertext                       # dua data berbeda
+    assert f.ciphertext[:4] == b"KSF1" and d.stego_png[:4] == b"\x89PNG"
     info = env.msg.describe_delivery(d)
     assert [x["type"] for x in info["attachments"]] == ["ciphertext_file", "stego_image"]
     with pytest.raises(DecryptionError):                     # stego tidak bisa dipakai sebagai gambar utama
-        file_cipher.decrypt_bytes(os.urandom(32), Path(d.stego_path).read_bytes())
+        file_cipher.decrypt_bytes(os.urandom(32), d.stego_png)
     res = env.center.open(b, d.id, "B001", expected_kind=KIND_IMAGE)
     assert res.data == png and res.filename == "foto.png"
 
@@ -234,7 +231,7 @@ def test_important_asset_aesgcm_and_hash_check(env):
     assert f.algo == file_cipher.ALGO_AESGCM and len(f.ciphertext_sha256) == 64
     res = env.center.open(b, delivery_of(env, m, b).id, "B001")
     assert res.data == data and res.is_important
-    p = Path(f.enc_path); raw = bytearray(p.read_bytes()); raw[-1] ^= 1; p.write_bytes(bytes(raw))
+    corrupt(f, -1)
     with pytest.raises(IntegrityViolationError):             # hash ciphertext tidak cocok
         env.center.open(b, delivery_of(env, m, b).id, "B001")
 

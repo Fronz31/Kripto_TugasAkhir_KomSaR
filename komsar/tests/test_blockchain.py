@@ -1,7 +1,7 @@
 """Blockchain (hash chaining, tanpa PoW), aset penting, dan verifikasi integritas."""
+import hashlib
 import json
 import os
-from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -12,11 +12,12 @@ from app.blockchain.store import BlockRow, SqlBlockStore
 from app.extensions import db
 from app.errors import AccessDeniedError, DecryptionError, IntegrityViolationError, ValidationError
 from app.models.records import KIND_ASSET, KIND_FILE
-from app.repository import InMemoryRepository
+from app.repository import SqlRepository
 from app.services import user_service as us
-from app.services.asset_service import AssetService, sha256_file
+from app.services.asset_service import AssetService
 from app.services.decryption_service import DecryptionCenter
 from app.services.messaging_service import MessagingService
+from tests.helpers import corrupt
 
 SECRET = "K123"
 H = "a" * 64
@@ -138,14 +139,14 @@ def test_export_json(tmp_path):
 
 # ---------------- aset penting ----------------
 @pytest.fixture
-def env(app, tmp_path):
+def env(app):
     u = {n: us.create_user(f"{n}01", f"{n[0].upper()}001", n.title(), f"Unit {n[0].upper()}", f"password-{n}")
          for n in ("andi", "budi", "citra", "deni")}
-    repo, chain = InMemoryRepository(), Blockchain()
+    repo, chain = SqlRepository(), Blockchain()
     assets = AssetService(repo, chain)
     master = app.config["DB_MASTER_KEY"]
-    msg = MessagingService(repo, master, app.config["COVER_IMAGES_DIR"], tmp_path / "enc", tmp_path / "stego",
-                           app.config["MAX_FILE_BYTES"], asset_service=assets)
+    msg = MessagingService(repo, master, app.config["COVER_IMAGES_DIR"], app.config["MAX_FILE_BYTES"],
+                           asset_service=assets)
     return SimpleNamespace(u=u, repo=repo, chain=chain, assets=assets, msg=msg,
                            center=DecryptionCenter(repo, master, assets), master=master)
 
@@ -166,7 +167,7 @@ def test_asset_creates_one_block_with_hash_and_metadata_only(env):
     assert len(bs) == 2                                   # genesis + SATU blok walau 3 penerima
     b = bs[1]
     assert b.asset_id == f.id and f.block_index == 1
-    assert b.ciphertext_hash == sha256_file(f.enc_path) == f.ciphertext_sha256
+    assert b.ciphertext_hash == hashlib.sha256(f.ciphertext).hexdigest() == f.ciphertext_sha256
     assert b.metadata["original_name"] == "kontrak.pdf" and b.metadata["size"] == len(data)
     assert b.sender["user_id"] == "A001" and {r["user_id"] for r in b.recipients} == {"B001", "C001", "D001"}
     dump = json.dumps(b.to_record())
@@ -201,7 +202,7 @@ def test_verify_ok_and_ciphertext_modified(env):
     m, f, _ = send_asset(env)
     b = env.u["budi"]
     assert env.assets.verify_integrity(b, f.id).ok
-    p = Path(f.enc_path); raw = bytearray(p.read_bytes()); raw[40] ^= 1; p.write_bytes(bytes(raw))
+    corrupt(f, 40)
     rep = env.assets.verify_integrity(b, f.id)
     assert not rep.ok and rep.status == "ciphertext_modified"
 
@@ -230,11 +231,11 @@ def test_decryption_center_refuses_modified_asset(env):
     m, f, _ = send_asset(env)
     b = env.u["budi"]
     d = delivery_of(env, m, b)
-    p = Path(f.enc_path); raw = bytearray(p.read_bytes()); raw[-1] ^= 1; p.write_bytes(bytes(raw))
+    raw = corrupt(f, -1)
     with pytest.raises(IntegrityViolationError) as e:
         env.center.open(b, d.id, "B001")
     assert "berubah" in str(e.value)
-    assert p.read_bytes() == bytes(raw) and d.status != "decrypted"   # ciphertext tidak diubah/dihapus
+    assert env.repo.get_file(f.id).ciphertext == raw and d.status != "decrypted"   # ciphertext tidak diubah/dihapus
 
 
 def test_decryption_center_refuses_when_chain_tampered(env):
@@ -250,9 +251,9 @@ def test_known_limitation_full_rewrite_not_detected_but_aead_still_protects(env)
     setelahnya lolos dari validasi rantai, tetapi AEAD tetap menolak ciphertext yang diubah."""
     m, f, _ = send_asset(env)
     b = env.u["budi"]
-    p = Path(f.enc_path); raw = bytearray(p.read_bytes()); raw[40] ^= 1; p.write_bytes(bytes(raw))
+    raw = corrupt(f, 40)
     blk = env.chain.blocks()[1]
-    blk.ciphertext_hash = sha256_file(p); blk.seal()                  # hitung ulang (blok ini terakhir)
+    blk.ciphertext_hash = hashlib.sha256(raw).hexdigest(); blk.seal()                  # hitung ulang (blok ini terakhir)
     tamper(1, ciphertext_hash=blk.ciphertext_hash, hash=blk.hash)
     assert env.assets.verify_integrity(b, f.id).ok                    # batas: tidak terdeteksi oleh blockchain
     with pytest.raises(DecryptionError):                              # tetapi isi yang diubah tak bisa didekripsi

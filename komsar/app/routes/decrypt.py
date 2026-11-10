@@ -79,7 +79,7 @@ def _own_delivery(delivery_id):
 @login_required
 def stego(delivery_id):
     d = _own_delivery(delivery_id)
-    return send_file(d.stego_path, mimetype="image/png", as_attachment=request.args.get("inline") != "1",
+    return send_file(io.BytesIO(d.stego_png or b""), mimetype="image/png", as_attachment=request.args.get("inline") != "1",
                      download_name=f"stego_{delivery_id[:8]}.png")
 
 
@@ -90,7 +90,7 @@ def cipher(delivery_id):
     d = _own_delivery(delivery_id)
     m = s.repo.get_message(d.message_id)
     if m.file_id:
-        return send_file(s.repo.get_file(m.file_id).enc_path, mimetype="application/octet-stream",
+        return send_file(io.BytesIO(s.repo.get_file(m.file_id).ciphertext or b""), mimetype="application/octet-stream",
                          as_attachment=True, download_name=f"cipher_{delivery_id[:8]}.enc")
     return send_file(io.BytesIO(m.ciphertext), mimetype="application/octet-stream", as_attachment=True,
                      download_name=f"cipher_{delivery_id[:8]}.bin")
