@@ -34,6 +34,12 @@ def send():
     return redirect(url_for("transfer.index"))
 
 
+@bp.route("/files")
+@login_required
+def files():
+    return render_template("files.html", files=svc().messaging.file_history(g.user))
+
+
 @bp.route("/assets")
 @login_required
 def assets():

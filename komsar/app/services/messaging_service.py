@@ -125,6 +125,40 @@ class MessagingService:
             })
         return out
 
+    def conversation(self, user: User, other: User) -> list[dict]:
+        """Pesan dua arah user <-> other, urut waktu. Hanya ciphertext; isi dibuka lewat Decryption Center."""
+        items = []
+        for d in self.repo.conversation(user.id, other.id):
+            m, incoming = d.message, d.recipient_pk == user.id
+            if incoming and d.status == STATUS_SENT:
+                d.status = STATUS_DELIVERED
+            items.append({
+                "delivery_id": d.id, "incoming": incoming, "kind": m.kind, "label": KIND_LABELS[m.kind],
+                "is_important": m.important, "created_at": m.created_at.isoformat(), "status": d.status,
+                "error": d.error, "file": {"name": m.file.original_name, "size": m.file.plaintext_size} if m.file else None,
+                "cipher_preview": m.ciphertext[:24].hex() if m.ciphertext else None,
+            })
+        db.session.commit()
+        return items
+
+    def file_history(self, user: User) -> list[dict]:
+        """File/gambar/aset yang dikirim dan diterima user (tanpa isi)."""
+        out = []
+        for m in self.repo.file_messages(user.id):
+            sent = m.sender_pk == user.id
+            mine = [d for d in m.deliveries if sent or d.recipient_pk == user.id]
+            out.append({
+                "name": m.file.original_name, "size": m.file.plaintext_size, "kind": m.kind,
+                "label": KIND_LABELS[m.kind], "is_important": m.important, "sent": sent,
+                "created_at": m.created_at.isoformat(),
+                "delivery_id": None if sent else mine[0].id,
+                "counterparts": [{"username": db.session.get(User, d.recipient_pk).username, "status": d.status,
+                                  "error": d.error} for d in mine] if sent else
+                                [{"username": db.session.get(User, m.sender_pk).username, "status": mine[0].status,
+                                  "error": None}],
+            })
+        return out
+
     def describe_delivery(self, d: DeliveryRecord) -> dict:
         """Data untuk chatbox. Tidak pernah berisi plaintext."""
         m = self.repo.get_message(d.message_id)

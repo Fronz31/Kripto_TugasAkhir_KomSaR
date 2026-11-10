@@ -4,7 +4,7 @@
 {% macro sent_table(sent) %}
 <div class="table-wrap"><table><tr><th>Jenis</th><th>Waktu</th><th>Penerima &amp; status</th><th>Gambar stego</th></tr>
 {% for m in sent %}<tr><td>{{ kind_badge(m) }}</td><td>{{ m.created_at|dt }}</td>
-<td>{% for r in m.recipients %}{{ r.username }} {{ status_badge(r.status) }}{% if r.error %} <span class="note">{{ r.error }}</span>{% endif %} {% endfor %}</td>
+<td>{% for r in m.recipients %}<a href="{{ url_for('chat.conversation', username=r.username) }}">{{ r.username }}</a> {{ status_badge(r.status) }}{% if r.error %} <span class="note">{{ r.error }}</span>{% endif %} {% endfor %}</td>
 <td>{{ m.recipients|selectattr('status', 'ne', 'failed')|list|length }} gambar (1 per penerima)</td></tr>
 {% else %}<tr><td colspan="4" class="note">Belum ada pengiriman.</td></tr>{% endfor %}</table></div>
 {% endmacro %}

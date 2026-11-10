@@ -1,0 +1,14 @@
+{% extends 'base.html' %}{% from '_macros.html' import kind_badge, status_badge %}
+{% block title %}Percakapan{% endblock %}
+{% block content %}
+<h1>Percakapan dengan {{ other.full_name }}</h1><div class="sub">{{ other.username }} · {{ other.unit }} · isi tetap terenkripsi sampai dibuka di Decryption Center.</div>
+<div class="card">
+{% for i in items %}<div class="msg {{ 'important' if i.is_important }}">{{ kind_badge(i) }} {{ status_badge(i.status) }}
+  <div class="meta">{{ ('dari ' ~ other.username) if i.incoming else ('Anda → ' ~ other.username) }} · {{ i.created_at|dt }}</div>
+  <div class="lock">🔒 Terenkripsi{% if i.file %} · {{ i.file.name }} ({{ (i.file.size / 1024)|round(1) }} KB){% endif %}
+    {% if i.cipher_preview %}<code>{{ i.cipher_preview }}…</code>{% endif %}</div>
+  {% if i.error %}<div class="note">{{ i.error }}</div>{% endif %}
+  {% if i.incoming %}<div class="note"><a class="btn sm" href="{{ url_for('decrypt.center', d=i.delivery_id) }}">Buka</a></div>{% endif %}</div>
+{% else %}<p class="note">Belum ada pesan dengan pengguna ini.</p>{% endfor %}</div>
+<p><a class="btn ghost sm" href="{{ url_for('chat.index') }}">Kirim pesan baru</a></p>
+{% endblock %}

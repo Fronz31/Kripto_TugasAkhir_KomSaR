@@ -12,7 +12,7 @@
 </form></div>
 <div class="card"><h2>Kotak masuk</h2>
 {% for i in inbox %}<div class="msg {{ 'important' if i.is_important }}">{{ kind_badge(i) }} {{ status_badge(i.status) }}
-  <div class="meta">dari {{ i.sender.full_name }} ({{ i.sender.unit }}) · {{ i.created_at|dt }}</div>
+  <div class="meta">dari {{ i.sender.full_name }} ({{ i.sender.unit }}) · {{ i.created_at|dt }} · <a href="{{ url_for('chat.conversation', username=i.sender.username) }}">Percakapan</a></div>
   {% if i.text is not none %}<pre class="plain">{{ i.text }}</pre>
   {% else %}<div class="lock">🔒 Terenkripsi{% if i.file %} · {{ i.file.name }} ({{ (i.file.size / 1024)|round(1) }} KB){% endif %}</div>{% endif %}
   <img class="thumb" alt="Gambar steganografi" src="{{ url_for('decrypt.stego', delivery_id=i.delivery_id, inline=1) }}">
