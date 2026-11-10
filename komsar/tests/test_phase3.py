@@ -1,9 +1,18 @@
 """Fase 3: status `failed`, audit log, tampilan percakapan, riwayat file."""
+import io
+import os
+
 import pytest
 
 from app.errors import StegoCapacityError
+from app.models.records import FileRecord
+from app.models.security import AuditLog
 from app.services import messaging_service as ms
-from tests.test_web import SECRET, html, login, post, uid, web  # noqa: F401  (fixture web)
+from app.services import user_service as us
+from app.services.audit_service import audit
+from tests.helpers import corrupt
+from tests.test_web import (PW, SECRET, decrypt, delivery_id, html, login, post, token, uid, upload,  # noqa: F401
+                            web)
 
 
 def _fail_embed_for(monkeypatch, *usernames):
@@ -32,7 +41,6 @@ def test_one_recipient_failure_marks_failed_others_succeed(web, monkeypatch):
 
 
 def test_file_failure_shown_on_transfer_page(web, monkeypatch):
-    import io
     _fail_embed_for(monkeypatch, "citra01")
     andi = login(web, "andi01")
     page = html(post(andi, "/transfer/send", {"recipients": "budi01,citra01", "secret": SECRET, "kind": "file",
@@ -50,5 +58,94 @@ def test_all_recipients_fail_raises(web, monkeypatch):
 
 
 def us_pk(username):
-    from app.services import user_service as us
     return us.get_by_username(username).id
+
+
+# ---------- audit log ----------
+def _logs(action=None):
+    q = AuditLog.query.order_by(AuditLog.id)
+    return (q.filter_by(action=action) if action else q).all()
+
+
+def _all_log_text():
+    return " ".join(f"{r.action} {r.target} {r.meta} {r.ip} {r.dongle_id}" for r in _logs())
+
+
+def test_audit_login_logout_send_decrypt_without_sensitive_data(web):
+    login(web, "budi01", password="salah-sekali")
+    andi = login(web, "andi01")
+    post(andi, "/chat/send", {"recipients": "budi01", "message": "Rahasia negara", "secret": SECRET})
+    budi = login(web, "budi01")
+    did = delivery_id(web, "budi01")
+    post(budi, "/decrypt", {"delivery_id": did, "user_id": uid("citra01")})           # ID salah
+    assert "Berhasil didekripsi" in decrypt(budi, did, uid("budi01"))
+    post(budi, "/logout")
+
+    failed = _logs("login_failed")[0]
+    assert failed.target == "budi01" and failed.user_id is None and failed.ip == "127.0.0.1"
+    assert _logs("login_success")[0].user.username == "andi01"
+    sent = _logs("send_text")[0]
+    assert sent.user.username == "andi01" and sent.meta == {"kind": "text", "recipients": 1, "failed": 0}
+    assert _logs("decrypt_failed")[0].meta["reason"] == "InvalidIDError"
+    assert _logs("decrypt_success")[0].target == did
+    assert _logs("logout")[0].user.username == "budi01"
+    text = _all_log_text()
+    for forbidden in ("Rahasia negara", SECRET, "salah-sekali", PW, uid("budi01"), uid("citra01")):
+        assert forbidden not in text
+
+
+def test_audit_integrity_failure(web):
+    andi, budi = login(web, "andi01"), login(web, "budi01")
+    upload(andi, ["budi01"], "kontrak.pdf", os.urandom(3000), "asset")
+    assert _logs("send_asset")[0].meta["kind"] == "asset"
+    corrupt(FileRecord.query.one(), 40)
+    decrypt(budi, delivery_id(web, "budi01"), uid("budi01"))
+    assert _logs("integrity_failed")[0].meta["reason"] == "IntegrityViolationError"
+
+
+def test_audit_admin_actions_and_user_delete_keeps_logs(web):
+    admin = login(web, "admin01")
+    post(admin, "/users/add", {"username": "dodi01", "full_name": "Dodi", "unit": "U", "password": PW})
+    dodi = us.get_by_username("dodi01")
+    pk, first_id = dodi.id, dodi.user_id
+    login(web, "dodi01")                                       # baris audit milik dodi sendiri
+    post(admin, f"/users/{pk}/edit", {"full_name": "Dodi B", "unit": "U", "is_active": "on"})
+    post(admin, f"/users/{pk}/regenerate-id")
+    regen_id = us.get_by_username("dodi01").user_id
+    post(admin, f"/users/{pk}/delete")
+    assert [r.action for r in _logs() if r.target == "dodi01"] == [
+        "user_create", "login_success", "user_update", "user_regenerate_id", "user_delete"]
+    own = AuditLog.query.filter_by(action="login_success", target="dodi01").one()
+    assert own.user_id is None                                 # FK di-NULL-kan, user tetap terhapus
+    assert first_id not in _all_log_text() and regen_id not in _all_log_text()
+
+
+def test_audit_dongle_register_and_deactivate(web):
+    admin = login(web, "admin01")
+    r = admin.post("/api/dongle/register", json={"label": "FD", "volume_serial": "1A2B3C4D"},
+                   headers={"X-CSRF-Token": token(admin)})
+    did, tok = r.get_json()["dongle_id"], r.get_json()["token"]
+    post(admin, f"/admin/dongles/{did}/deactivate")
+    assert _logs("dongle_register")[0].target == did and _logs("dongle_deactivate")[0].target == did
+    assert tok not in _all_log_text()
+
+
+def test_audit_rejects_sensitive_meta(web):
+    with pytest.raises(ValueError):
+        audit("send_text", secret="K123")
+
+
+def test_audit_page_admin_only_filter_and_pagination(web):
+    budi = us.get_by_username("budi01")
+    for i in range(55):
+        audit("send_text", target=f"m{i}", user=budi)
+    audit("logout", target="x", user=us.get_by_username("citra01"))
+    assert login(web, "budi01").get("/admin/audit").status_code == 403
+    admin = login(web, "admin01")
+    page = html(admin.get("/admin/audit"))
+    assert "Audit Log" in page and "dari 2" in page and "Berikutnya" in page
+    assert page.index(">x<") < page.index(">m54<")                 # terbaru di atas
+    filtered = html(admin.get("/admin/audit?username=citra01"))
+    assert ">x<" in filtered and ">m1<" not in filtered
+    by_action = html(admin.get("/admin/audit?action=send_text&page=2"))
+    assert ">m0<" in by_action and ">x<" not in by_action
