@@ -10,6 +10,7 @@ from app.config import TestConfig
 from app.extensions import db
 from app.models.security import Dongle
 from app.services import user_service as us
+from tests.helpers import login as full_login
 
 SERIAL = "1A2B3C4D"
 PW = "komsar123"
@@ -25,13 +26,9 @@ def web():
 
 
 def login(app, username):
-    c = app.test_client()
+    c = full_login(app, username)
     with c.session_transaction() as s:
-        s["csrf_token"] = "tok-test"
-    c.post("/login", data={"username": username, "password": PW, "csrf_token": "tok-test"})
-    with c.session_transaction() as s:                          # login mengosongkan sesi
         assert "user_pk" in s
-        s["csrf_token"] = "tok-test"
     return c
 
 
@@ -133,21 +130,25 @@ def test_enforcement_off_by_default(web):
 def test_enforcement_on(web):
     web.config["KOMSAR_REQUIRE_DONGLE"] = True
     did, tok = DongleService().register("A", SERIAL)
-    c = login(web, "andi01")
+    c = login(web, "andi01")                                    # login dengan dongle -> dongle_seen terisi
+    assert c.get("/dashboard").status_code == 200
+    with c.session_transaction() as s:
+        s["dongle_seen"] = time.time() - 61
     r = c.get("/dashboard")
     assert r.status_code == 302 and "/login" in r.headers["Location"]
     with c.session_transaction() as s:
         assert "user_pk" not in s                               # sesi diakhiri
 
     c = login(web, "andi01")
+    with c.session_transaction() as s:
+        s["dongle_seen"] = time.time() - 61
     assert c.get("/static/app.js").status_code == 200           # static dikecualikan
     assert api(c, "/api/dongle/heartbeat", proof(did, tok)).get_json() == {"ok": True}
     assert c.get("/dashboard").status_code == 200
-    with c.session_transaction() as s:
-        s["dongle_seen"] = time.time() - 61
-    assert c.get("/dashboard").status_code == 302
 
     c = login(web, "admin01")
+    with c.session_transaction() as s:
+        del s["dongle_seen"]
     assert api(c, "/api/dongle/register", {"label": "B", "volume_serial": SERIAL}).status_code == 401
 
 

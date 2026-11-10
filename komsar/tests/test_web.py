@@ -11,6 +11,7 @@ from app.config import TestConfig
 from app.models.records import DeliveryRecord, FileRecord
 from app.services import user_service as us
 from tests.helpers import corrupt
+from tests.helpers import login as full_login
 
 PW = "komsar123"
 SECRET = "K123"
@@ -41,10 +42,8 @@ def post(client, url, data=None, **kw):
     return client.post(url, data=data, follow_redirects=True, **kw)
 
 
-def login(app, username, password=PW):
-    c = app.test_client()
-    post(c, "/login", {"username": username, "password": password})
-    return c
+def login(app, username, password=PW, client=None):
+    return full_login(app, username, password, client=client)
 
 
 def html(r):
@@ -75,9 +74,8 @@ def test_requires_login_and_login_flow(web):
     c = web.test_client()
     r = c.get("/dashboard")
     assert r.status_code == 302 and "/login" in r.headers["Location"]
-    assert "salah" in html(post(c, "/login", {"username": "budi01", "password": "x"}))
-    r = post(c, "/login", {"username": "budi01", "password": PW})
-    assert "Halo, Budi" in html(r)
+    assert "Username, password, atau dongle tidak valid" in html(post(c, "/login", {"username": "budi01", "password": "x"}))
+    assert "Halo, Budi" in html(login(web, "budi01", client=c).get("/dashboard"))
 
 
 def test_csrf_enforced_and_security_headers(web):
@@ -207,7 +205,7 @@ def test_admin_chain_page_access(web):
 
 def test_user_management_permissions(web):
     admin, budi = login(web, "admin01"), login(web, "budi01")
-    new = {"username": "deni01", "full_name": "Deni", "unit": "Unit D", "password": PW}
+    new = {"username": "deni01", "full_name": "Deni", "unit": "Unit D"}
     assert budi.post("/users/add", data={**new, "csrf_token": token(budi)}).status_code == 403
     assert "berhasil ditambahkan" in html(post(admin, "/users/add", new))
     assert "sudah dipakai" in html(post(admin, "/users/add", new))
@@ -217,7 +215,7 @@ def test_user_management_permissions(web):
 
 def test_admin_add_shows_generated_id(web):
     admin = login(web, "admin01")
-    out = html(post(admin, "/users/add", {"username": "deni01", "full_name": "Deni", "unit": "Unit D", "password": PW}))
+    out = html(post(admin, "/users/add", {"username": "deni01", "full_name": "Deni", "unit": "Unit D"}))
     assert "berhasil ditambahkan" in out and uid("deni01") in out
     assert 'name="user_id"' not in html(admin.get("/users/"))               # admin tidak mengetik ID
 
