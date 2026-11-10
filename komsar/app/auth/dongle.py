@@ -20,8 +20,8 @@ def _hash(token: str) -> str:
 class DongleService:
     def register(self, label: str, volume_serial: str, admin=None) -> tuple[str, str]:
         """Buat dongle baru. Token hanya dikembalikan sekali (untuk ditulis ke flashdisk)."""
-        label = (label or "").strip()
-        serial = (volume_serial or "").strip().upper()
+        label = str(label or "").strip()
+        serial = str(volume_serial or "").strip().upper()
         if not label or len(label) > 100:
             raise ValueError("Label dongle wajib diisi (maks. 100 karakter).")
         if not SERIAL_RE.match(serial):

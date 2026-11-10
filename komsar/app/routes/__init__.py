@@ -1,7 +1,7 @@
 from flask import render_template
 from werkzeug.exceptions import HTTPException
 
-from ._helpers import csrf_token, fmt_dt, protect_csrf, status_label
+from ._helpers import csrf_token, fmt_dt, protect_csrf, require_dongle, status_label
 
 ERROR_TEXT = {401: "Silakan login terlebih dahulu.", 403: "Anda tidak berhak mengakses halaman ini.",
               404: "Halaman atau data tidak ditemukan.",
@@ -9,14 +9,15 @@ ERROR_TEXT = {401: "Silakan login terlebih dahulu.", 403: "Anda tidak berhak men
 
 
 def register_routes(app):
-    from . import admin, auth, chat, dashboard, decrypt, transfer, users
-    for module in (auth, dashboard, users, chat, transfer, decrypt, admin):
+    from . import admin, api, auth, chat, dashboard, decrypt, transfer, users
+    for module in (auth, dashboard, users, chat, transfer, decrypt, admin, api):
         app.register_blueprint(module.bp)
 
     app.jinja_env.globals["csrf_token"] = csrf_token      # global agar tersedia di dalam macro
     app.jinja_env.filters["dt"] = fmt_dt
     app.jinja_env.filters["status"] = status_label
     app.before_request(protect_csrf)
+    app.before_request(require_dongle)
 
     @app.context_processor
     def inject():
