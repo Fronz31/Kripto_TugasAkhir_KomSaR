@@ -58,6 +58,25 @@ Endpoint: `POST /api/dongle/check` (tanpa login, dipakai klien desktop, dibatasi
 `POST /api/dongle/register` (admin), `POST /api/dongle/heartbeat` (dikirim halaman tiap 30 detik).
 Penegakan heartbeat aktif bila `KOMSAR_REQUIRE_DONGLE=1`.
 
+## Verifikasi suara
+Model `speechbrain/spkrec-ecapa-voxceleb` mengubah rekaman menjadi embedding, lalu dibandingkan dengan
+cosine similarity. Server memasang `pip install -r requirements-server.txt` (torch CPU); `requirements.txt`
+tetap tanpa torch, dan test memakai `VOICE_BACKEND=fake`. Model dimuat sekali per proses dari
+`VOICE_MODEL_DIR` (bila folder kosong, diunduh dari Hugging Face ke folder itu).
+
+- Rekaman: WAV PCM 16-bit, 16000 Hz, mono, 2 sampai 10 detik, maks. 1 MB (direkam aplikasi desktop).
+- Pendaftaran: pemilik akun merekam **3 sampel**, masing-masing dengan kalimat acak 4 kata (berlaku 2 menit,
+  sekali pakai). Embedding dirata-rata, dinormalisasi, lalu disimpan terenkripsi AES-256-GCM di `voice_profiles`.
+  Rekaman WAV tidak disimpan. Pengguna tidak bisa mendaftar ulang sendiri.
+- Verifikasi: dibandingkan hanya dengan profil akun itu; lolos bila skor >= `VOICE_THRESHOLD` (default 0.25,
+  kalibrasi dengan suara tim).
+- Reset: admin menekan **Reset suara** di halaman edit pengguna. Profil dihapus, akun `must_enroll` dengan
+  batas waktu `ENROLL_WINDOW_HOURS` (default 24 jam).
+
+Endpoint (login + header `X-CSRF-Token`): `POST /api/voice/challenge` `{purpose: "enroll"|"verify"}`,
+`POST /api/voice/enroll` `{samples: [{challenge_id, wav_b64}] x3}`, `POST /api/voice/verify`
+`{challenge_id, wav_b64}` -> `{ok}`. Helper halaman: `static/voice.js` (`komsarVoice.enroll/verify`).
+
 ## Pemakaian service (contoh)
 ```python
 svc = app.extensions["komsar"]
