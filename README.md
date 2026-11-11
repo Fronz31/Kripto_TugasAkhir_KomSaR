@@ -155,4 +155,4 @@ Tugas akhir mata kuliah Kriptografi.
 | Fahmi Firdaus | 123240055 |
 | Farabian Nabil Alauzi | 123240058 |
 
-Kontributor repositori: [Fronz31](https://github.com/Fronz31), [TangRmdhn](https://github.com/TangRmdhn).
+Kontributor repositori: [Fronz31](https://github.com/Fronz31), [TangRmdhn](https://github.com/TangRmdhn), [FahmiFirdaus7](https://github.com/FahmiFirdaus7).
