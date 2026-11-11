@@ -13,10 +13,11 @@
   {% else %}
   <h2>2. Daftarkan suara</h2>
   <div id="voice-enroll">
-    <p>Anda akan merekam 3 kalimat acak (masing-masing 5 detik). Ucapkan setiap kalimat dengan jelas.</p>
+    <p>Anda akan merekam 3 kalimat acak. Untuk setiap kalimat, tekan dan tahan tombol sambil mengucapkannya dengan jelas (2 sampai 10 detik), lalu lepas.</p>
+    <p id="voice-progress" class="tag" aria-live="polite"></p>
     <p class="phrase" aria-live="polite"><strong id="voice-phrase"></strong></p>
-    <p id="voice-status" class="note" role="status"></p>
-    <p><button type="button" id="voice-start">Mulai rekam</button></p>
+    <p id="voice-status" class="note" role="status" aria-live="polite"></p>
+    <p><button type="button" id="voice-start" class="hold" aria-pressed="false" aria-describedby="voice-status"><span class="rec-dot" aria-hidden="true"></span><span id="voice-label">Tahan untuk merekam</span><span id="voice-timer" class="rec-timer" aria-hidden="true"></span></button></p>
   </div>
   {% endif %}
   <p class="note">Sesi login berlaku 3 menit. Bila habis, login ulang dengan password {{ 'baru' if pw_changed else 'sementara' }} dan dongle.</p>
