@@ -51,7 +51,8 @@ Langkah 1: username + password (+ bukti dongle dibaca otomatis dari flashdisk)
 
 1. Login dengan **password sementara** dari admin.
 2. **Ganti password**: password baru minimal 8 karakter dan harus berbeda dari password sementara.
-3. **Daftarkan suara**: rekam **3 sampel**. Setiap sampel menampilkan kalimat acak yang harus diucapkan.
+3. **Daftarkan suara**: rekam **3 sampel**. Setiap sampel menampilkan kalimat acak. **Tekan dan tahan** tombol
+   **Tahan untuk merekam** sambil mengucapkannya, lalu lepas untuk mengirim (minimal 2 detik, maksimal 10 detik).
 4. Selesai: langsung masuk ke Beranda.
 
 Login pertama harus dilakukan dalam **24 jam** sejak akun dibuat atau suara di-reset. Lewat dari itu, akun
@@ -60,8 +61,14 @@ terkunci sampai admin me-reset suaranya.
 ### 1.2 Login berikutnya
 
 1. Username + password (+ dongle).
-2. Aplikasi menampilkan **kalimat acak**. Rekam suara sambil mengucapkannya.
+2. Aplikasi menampilkan **kalimat acak**. **Tahan** tombol rekam sambil mengucapkannya, lalu lepas.
 3. Suara dicocokkan dengan profil suara **akun itu sendiri**. Cocok: masuk ke Beranda.
+
+Cara merekam suara:
+- Selama tombol ditahan, tombol bertuliskan "Merekam… lepas untuk berhenti", ada titik merah, dan penghitung waktu.
+- Keyboard: fokus ke tombol, lalu tahan **Spasi** atau **Enter**.
+- Rekaman kurang dari 2 detik ditolak dan bisa diulang untuk kalimat yang sama. Lewat 10 detik, rekaman berhenti otomatis.
+- `KomSaR.exe` versi lama (sebelum fitur ini) memakai tombol **Mulai rekam** yang merekam otomatis 4–5 detik.
 
 ### 1.3 Mengganti suara
 
