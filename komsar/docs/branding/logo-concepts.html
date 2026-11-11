@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Konsep Logo KomSaR</title>
+<style>
+  :root {
+    --ink: #0c1a33;        /* navy tema aplikasi */
+    --accent: #f5a623;     /* amber tema aplikasi */
+    --paper: #f6f7f9;
+    --card: #ffffff;
+    --muted: #4b5563;
+    --line: #e3e6eb;
+    --dark: #0c1a33;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink);
+         font-family: "Segoe UI", system-ui, -apple-system, sans-serif; }
+  header { max-width: 1200px; margin: 0 auto; padding: 48px 24px 16px; }
+  h1 { margin: 0 0 8px; font-size: 32px; letter-spacing: -0.02em; }
+  header p { margin: 0; color: var(--muted); max-width: 720px; line-height: 1.5; }
+  main { max-width: 1200px; margin: 0 auto; padding: 24px;
+         display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; overflow: hidden;
+          display: flex; flex-direction: column; transition: transform .2s ease, box-shadow .2s ease; }
+  .card:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(12,26,51,.08); }
+  .stage { display: grid; grid-template-columns: 1fr 1fr; }
+  .stage > div { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; }
+  .light { background: #ffffff; color: var(--ink); }
+  .darkbg { background: var(--dark); color: #ffffff; }
+  .stage svg { width: 62%; height: 62%; }
+  .meta { padding: 16px 18px 18px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; }
+  .title { display: flex; align-items: baseline; gap: 10px; }
+  .num { font-weight: 700; color: var(--muted); font-size: 13px; }
+  h2 { margin: 0; font-size: 18px; }
+  .tag { margin-left: auto; font-size: 12px; color: var(--muted); border: 1px solid var(--line);
+         border-radius: 999px; padding: 2px 10px; white-space: nowrap; }
+  .why { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
+  .sizes { display: flex; align-items: center; gap: 14px; padding-top: 4px; }
+  .sizes span { font-size: 12px; color: var(--muted); }
+  .sizes .ico { color: var(--ink); display: inline-flex; }
+  .lockup { display: flex; align-items: center; gap: 10px; margin-left: auto; color: var(--ink); }
+  .lockup b { font-size: 20px; letter-spacing: -0.01em; }
+  .lockup b i { font-style: normal; color: var(--accent); }
+  footer { max-width: 1200px; margin: 0 auto; padding: 8px 24px 48px; color: var(--muted); font-size: 14px; }
+  .acc { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<!-- Definisi logo: viewBox 0 0 100 100, currentColor + aksen amber (pola dari logo-generator skill) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <mask id="m-keyhole" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
+      <rect width="100" height="100" fill="#fff"/>
+      <circle cx="46" cy="47" r="8.5" fill="#000"/>
+      <rect x="41.75" y="49" width="8.5" height="21" rx="4.25" fill="#000"/>
+    </mask>
+    <mask id="m-bubble" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
+      <rect width="100" height="100" fill="#fff"/>
+      <g stroke="#000" stroke-width="6.5" stroke-linecap="round" fill="none">
+        <line x1="40" y1="34" x2="40" y2="58"/>
+        <line x1="40" y1="47" x2="58" y2="34"/>
+        <line x1="46" y1="43" x2="59" y2="58"/>
+      </g>
+    </mask>
+
+    <!-- 1. Kunci Lingkar -->
+    <symbol id="l1" viewBox="0 0 100 100">
+      <circle cx="46" cy="54" r="32" fill="currentColor" mask="url(#m-keyhole)"/>
+      <circle cx="81" cy="21" r="6" fill="var(--accent)"/>
+    </symbol>
+
+    <!-- 2. Piksel Tersembunyi -->
+    <symbol id="l2" viewBox="0 0 100 100">
+      <g fill="currentColor">
+        <!-- sel latar (pudar) -->
+        <g opacity="0.14">
+          <rect x="31" y="17" width="10" height="10" rx="3"/><rect x="45" y="17" width="10" height="10" rx="3"/><rect x="73" y="17" width="10" height="10" rx="3"/>
+          <rect x="31" y="31" width="10" height="10" rx="3"/><rect x="59" y="31" width="10" height="10" rx="3"/><rect x="73" y="31" width="10" height="10" rx="3"/>
+          <rect x="45" y="45" width="10" height="10" rx="3"/><rect x="59" y="45" width="10" height="10" rx="3"/>
+          <rect x="31" y="59" width="10" height="10" rx="3"/><rect x="59" y="59" width="10" height="10" rx="3"/><rect x="73" y="59" width="10" height="10" rx="3"/>
+          <rect x="31" y="73" width="10" height="10" rx="3"/><rect x="45" y="73" width="10" height="10" rx="3"/><rect x="73" y="73" width="10" height="10" rx="3"/>
+        </g>
+        <!-- huruf K -->
+        <rect x="17" y="17" width="10" height="10" rx="3"/><rect x="17" y="31" width="10" height="10" rx="3"/>
+        <rect x="17" y="45" width="10" height="10" rx="3"/><rect x="17" y="59" width="10" height="10" rx="3"/>
+        <rect x="17" y="73" width="10" height="10" rx="3"/>
+        <rect x="31" y="45" width="10" height="10" rx="3"/>
+        <rect x="45" y="31" width="10" height="10" rx="3"/><rect x="59" y="17" width="10" height="10" rx="3"/>
+        <rect x="45" y="59" width="10" height="10" rx="3"/><rect x="59" y="73" width="10" height="10" rx="3"/>
+      </g>
+      <rect x="73" y="45" width="10" height="10" rx="3" fill="var(--accent)"/>
+    </symbol>
+
+    <!-- 3. Gelombang Suara -->
+    <symbol id="l3" viewBox="0 0 100 100">
+      <g stroke="currentColor" stroke-width="6" stroke-linecap="round">
+        <line x1="23" y1="45" x2="23" y2="55"/>
+        <line x1="32" y1="38" x2="32" y2="62"/>
+        <line x1="41" y1="29" x2="41" y2="71"/>
+        <line x1="59" y1="33" x2="59" y2="67"/>
+        <line x1="68" y1="40" x2="68" y2="60"/>
+        <line x1="77" y1="46" x2="77" y2="54"/>
+      </g>
+      <line x1="50" y1="20" x2="50" y2="80" stroke="var(--accent)" stroke-width="6" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- 4. Perisai Titik -->
+    <symbol id="l4" viewBox="0 0 100 100">
+      <path d="M50 13 L80 24 V47 C80 68 67 80 50 88 C33 80 20 68 20 47 V24 Z"
+            fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/>
+      <g fill="currentColor">
+        <circle cx="38" cy="36" r="3.2"/><circle cx="50" cy="36" r="3.2"/><circle cx="62" cy="36" r="3.2"/>
+        <circle cx="38" cy="48" r="3.2"/><circle cx="62" cy="48" r="3.2"/>
+        <circle cx="42" cy="60" r="3.2"/><circle cx="58" cy="60" r="3.2"/>
+        <circle cx="50" cy="71" r="3.2"/>
+      </g>
+      <circle cx="50" cy="48" r="5" fill="var(--accent)"/>
+    </symbol>
+
+    <!-- 5. Lapis Sandi -->
+    <symbol id="l5" viewBox="0 0 100 100">
+      <rect x="22" y="22" width="56" height="56" rx="14" fill="none" stroke="currentColor" stroke-width="4"/>
+      <rect x="36" y="36" width="28" height="28" rx="7" fill="none" stroke="currentColor" stroke-width="4"
+            transform="rotate(45 50 50)"/>
+      <circle cx="50" cy="50" r="5" fill="var(--accent)"/>
+    </symbol>
+
+    <!-- 6. Rantai Satuan -->
+    <symbol id="l6" viewBox="0 0 100 100">
+      <g stroke="currentColor" stroke-width="3.5" stroke-linecap="round">
+        <line x1="29" y1="66" x2="44" y2="55"/>
+        <line x1="56" y1="45" x2="71" y2="34"/>
+      </g>
+      <rect x="14" y="61" width="20" height="20" rx="6" fill="currentColor"/>
+      <rect x="40" y="40" width="20" height="20" rx="6" fill="currentColor"/>
+      <rect x="66" y="19" width="20" height="20" rx="6" fill="var(--accent)"/>
+    </symbol>
+
+    <!-- 7. Pesan Aman -->
+    <symbol id="l7" viewBox="0 0 100 100">
+      <path d="M32 20 H68 C77 20 84 27 84 36 V56 C84 65 77 72 68 72 H42 L26 84 L28 72 C20 70 16 64 16 56 V36 C16 27 23 20 32 20 Z"
+            fill="currentColor" mask="url(#m-bubble)"/>
+      <circle cx="70" cy="46" r="4" fill="var(--accent)"/>
+    </symbol>
+
+    <!-- 8. Satu Sinyal -->
+    <symbol id="l8" viewBox="0 0 100 100">
+      <g stroke="currentColor" stroke-width="4.5" stroke-linecap="round">
+        <line x1="50" y1="34" x2="50" y2="14"/>
+        <line x1="61.3" y1="38.7" x2="67" y2="33"/>
+        <line x1="66" y1="50" x2="86" y2="50"/>
+        <line x1="61.3" y1="61.3" x2="67" y2="67"/>
+        <line x1="50" y1="66" x2="50" y2="86"/>
+        <line x1="38.7" y1="61.3" x2="33" y2="67"/>
+        <line x1="34" y1="50" x2="14" y2="50"/>
+        <line x1="38.7" y1="38.7" x2="33" y2="33"/>
+      </g>
+      <circle cx="50" cy="50" r="8" fill="var(--accent)"/>
+    </symbol>
+  </defs>
+</svg>
+
+<header>
+  <h1>Konsep Logo Kom<span class="acc">SaR</span></h1>
+  <p>Delapan arah untuk ikon aplikasi desktop. Setiap kartu menampilkan logo di latar terang dan gelap,
+     ukuran ikon 16/32/64 px (ukuran yang dipakai file <code>.ico</code>), dan lockup dengan nama aplikasi.
+     Warna mengikuti tema aplikasi: navy <code>#0c1a33</code> dan amber <code>#f5a623</code>.</p>
+</header>
+
+<main id="grid"></main>
+
+<footer>Pilih nomornya. Logo terpilih akan diekspor ke SVG, PNG, dan <code>KomSaR.ico</code> (16–256 px) lalu dipasang ke exe.</footer>
+
+<template id="card">
+  <article class="card">
+    <div class="stage">
+      <div class="light"><svg role="img"><use/></svg></div>
+      <div class="darkbg"><svg aria-hidden="true"><use/></svg></div>
+    </div>
+    <div class="meta">
+      <div class="title"><span class="num"></span><h2></h2><span class="tag"></span></div>
+      <p class="why"></p>
+      <div class="sizes">
+        <span class="ico"><svg width="16" height="16" aria-hidden="true"><use/></svg></span>
+        <span class="ico"><svg width="32" height="32" aria-hidden="true"><use/></svg></span>
+        <span class="ico"><svg width="64" height="64" aria-hidden="true"><use/></svg></span>
+        <span>16 · 32 · 64</span>
+        <span class="lockup"><svg width="34" height="34" aria-hidden="true"><use/></svg><b>Kom<i>SaR</i></b></span>
+      </div>
+    </div>
+  </article>
+</template>
+
+<script>
+  const logos = [
+    ["Kunci Lingkar", "Geometris murni", "Lingkaran padat dengan lubang kunci membulat: keamanan dalam satu bentuk. Titik amber di orbit adalah sinyal yang keluar dari ruang aman."],
+    ["Piksel Tersembunyi", "Dot matrix", "Grid 5×5 membentuk huruf K. Satu piksel amber di luar huruf mewakili bit kunci yang disisipkan lewat steganografi LSB."],
+    ["Gelombang Suara", "Sistem garis", "Batang gelombang suara simetris dengan inti amber: login biometrik suara dan komunikasi antarsatuan."],
+    ["Perisai Titik", "Titik + geometri", "Perisai berisi titik-titik anggota satuan. Inti amber adalah kunci rahasia yang hanya dibuka penerima."],
+    ["Lapis Sandi", "Garis + geometri", "Dua lapis bentuk (persegi dan belah ketupat) melambangkan super enkripsi: klasik lalu modern, mengunci inti amber."],
+    ["Rantai Satuan", "Jaringan node", "Tiga blok naik berantai: blockchain aset penting. Blok amber adalah blok terbaru yang tercatat."],
+    ["Pesan Aman", "Huruf + simbol", "Balon pesan dengan huruf K tercetak negatif: aplikasi pesan KomSaR. Titik amber sebagai indikator terenkripsi."],
+    ["Satu Sinyal", "Radial", "Delapan pancaran panjang-pendek dari satu pusat: satu komando yang menjangkau semua satuan rakyat."],
+  ];
+  const grid = document.getElementById("grid"), tpl = document.getElementById("card");
+  logos.forEach(([name, tag, why], i) => {
+    const node = tpl.content.cloneNode(true);
+    node.querySelectorAll("use").forEach(u => u.setAttribute("href", "#l" + (i + 1)));
+    node.querySelector(".light svg").setAttribute("aria-label", "Logo " + name);
+    node.querySelector(".num").textContent = String(i + 1).padStart(2, "0");
+    node.querySelector("h2").textContent = name;
+    node.querySelector(".tag").textContent = tag;
+    node.querySelector(".why").textContent = why;
+    grid.appendChild(node);
+  });
+</script>
+</body>
+</html>
