@@ -306,3 +306,52 @@ def test_bootstrap_admin_first_login(drive, tmp_path):
         assert enroll_samples(c).get_json() == {"ok": True}
         assert c.get("/admin/audit").status_code == 200
         assert time.time() - sess(c)["dongle_seen"] < 5
+
+
+# ---- Flag uji coba: admin tanpa suara, server tanpa dongle ----
+
+def test_admin_skip_voice_flag(web):
+    web.config["KOMSAR_ADMIN_SKIP_VOICE"] = True
+    c = web.test_client()
+    r = login_step1(web, c, "admin01", PW)                     # admin tanpa profil suara
+    assert r.status_code == 302 and r.headers["Location"].endswith("/dashboard")
+    assert c.get("/dashboard").status_code == 200
+    assert "admin_skip_voice" in [a.meta.get("factor") for a in AuditLog.query if a.action == "login_success"]
+
+    c2 = web.test_client()                                      # pengguna biasa tetap wajib suara
+    assert "belum memiliki profil suara" in text(login_step1(web, c2, "andi01", PW))
+
+    web.config["KOMSAR_ADMIN_SKIP_VOICE"] = False               # flag mati: admin kembali wajib suara
+    assert "belum memiliki profil suara" in text(login_step1(web, web.test_client(), "admin01", PW))
+
+
+def test_admin_skip_voice_still_needs_password_and_dongle(web):
+    web.config["KOMSAR_ADMIN_SKIP_VOICE"] = True
+    assert GENERIC in text(login_step1(web, web.test_client(), "admin01", "salah-password"))
+    assert GENERIC in text(login_step1(web, web.test_client(), "admin01", PW, ("x", "y", SERIAL)))
+
+
+def test_client_config_and_heartbeat_follow_dongle_flag(web):
+    web.config["KOMSAR_ADMIN_SKIP_VOICE"] = True
+    c = web.test_client()
+    assert c.get("/api/client-config").get_json() == {"require_dongle": True}
+    login_step1(web, c, "admin01", PW)
+    assert 'data-require-dongle="1"' in text(c.get("/dashboard"))
+
+    web.config["KOMSAR_REQUIRE_DONGLE"] = False
+    c = web.test_client()
+    assert c.get("/api/client-config").get_json() == {"require_dongle": False}
+    r = login_step1(web, c, "admin01", PW)                      # tanpa bukti dongle
+    assert r.headers["Location"].endswith("/dashboard")
+    assert "data-require-dongle" not in text(c.get("/dashboard"))
+
+
+def test_bootstrap_admin_no_dongle():
+    app = create_app(TestConfig)
+    with app.app_context():
+        r = app.test_cli_runner().invoke(args=["komsar", "bootstrap-admin", "--username", "boss01",
+                                               "--full-name", "Bos", "--no-dongle"])
+        assert r.exit_code == 0, r.output
+        temp = re.search(r"\(ditampilkan sekali\): (\S+)", r.output).group(1)
+        assert authenticate("boss01", temp).is_admin
+        assert DongleService().list() == []

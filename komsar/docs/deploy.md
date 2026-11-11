@@ -136,7 +136,25 @@ Di folder aplikasi desktop, isi `config.json`:
 
 Tanpa garis miring di akhir. Lihat `desktop/README.md` untuk build dan pemakaian klien.
 
-## 9. Ringkasan environment variable produksi
+## 9. Mode uji coba (tanpa dongle / admin tanpa suara)
+
+Selama dongle fisik belum siap, server bisa dijalankan dengan dua flag sementara:
+
+```powershell
+insta --agent secrets set KOMSAR_REQUIRE_DONGLE 0     # login & sesi tanpa dongle
+insta --agent secrets set KOMSAR_ADMIN_SKIP_VOICE 1   # akun admin login tanpa langkah suara
+# lalu deploy ulang / insta --agent compute restart komsar
+```
+
+- Klien desktop menanyakan `GET /api/client-config` saat start. Bila `require_dongle` false, gerbang dongle dilewati,
+  jadi `.exe` yang sama tetap dipakai saat dongle nanti diaktifkan kembali.
+- Admin dibuat tanpa flashdisk: `flask --app wsgi komsar bootstrap-admin --no-dongle`.
+- Pengguna biasa **tetap** wajib suara (login pertama: ganti password lalu daftar suara).
+- Admin dengan flag ini tetap memakai password sementara sampai diganti di halaman Profil.
+- **Kembalikan kedua flag ke nilai produksi** (`KOMSAR_REQUIRE_DONGLE=1`, `KOMSAR_ADMIN_SKIP_VOICE=0`) setelah dongle
+  terdaftar dan suara admin didaftarkan (admin lain menekan "Reset suara" agar admin ini mendaftar di login berikutnya).
+
+## 10. Ringkasan environment variable produksi
 
 | Variabel | Wajib | Sumber |
 |---|---|---|
@@ -146,4 +164,5 @@ Tanpa garis miring di akhir. Lihat `desktop/README.md` untuk build dan pemakaian
 | `KOMSAR_REQUIRE_DONGLE` | disarankan `1` (default `1`) | `insta secrets set` |
 | `VOICE_BACKEND` | `speechbrain` (default image) | `insta secrets set` / Dockerfile |
 | `VOICE_THRESHOLD` | opsional (default 0.25) | `insta secrets set` |
+| `KOMSAR_ADMIN_SKIP_VOICE` | `0` di produksi (`1` hanya uji coba) | `insta secrets set` |
 | `KOMSAR_ENV`, `KOMSAR_TRUST_PROXY`, `VOICE_MODEL_DIR`, `HF_HUB_OFFLINE` | sudah di Dockerfile | — |

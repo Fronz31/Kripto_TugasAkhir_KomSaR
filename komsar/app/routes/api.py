@@ -54,6 +54,12 @@ def api_login_required(admin=False):
     return deco
 
 
+@bp.route("/client-config")
+def client_config():
+    """Dibaca klien desktop sebelum gerbang dongle; tanpa login."""
+    return jsonify(require_dongle=bool(current_app.config["KOMSAR_REQUIRE_DONGLE"]))
+
+
 @bp.route("/dongle/check", methods=["POST"])
 def dongle_check():
     if _rate_limited():

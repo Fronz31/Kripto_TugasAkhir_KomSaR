@@ -52,6 +52,8 @@ class Config:
     # Wajib dongle saat login (langkah 1) dan selama sesi (heartbeat). Matikan (0) hanya untuk development.
     KOMSAR_REQUIRE_DONGLE = _flag("KOMSAR_REQUIRE_DONGLE", "1")
     DONGLE_HEARTBEAT_TIMEOUT = _int("DONGLE_HEARTBEAT_TIMEOUT", 60)    # detik
+    # Sementara (uji coba): admin login tanpa langkah suara. Matikan (0) setelah suara admin didaftarkan.
+    KOMSAR_ADMIN_SKIP_VOICE = _flag("KOMSAR_ADMIN_SKIP_VOICE", "0")
     DONGLE_CHECK_RATE_PER_MIN = 30                                      # per IP, /api/dongle/check
 
     # Suara: speechbrain (server, butuh requirements-server.txt) atau fake (khusus test)

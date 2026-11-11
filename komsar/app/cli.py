@@ -36,10 +36,21 @@ desk = _load_desktop_dongle()
 @click.option("--drive", help=r"Root flashdisk, mis. E:\ (tanpa opsi ini: pilih dari daftar)")
 @click.option("--label", default="Dongle Admin", show_default=True, help="Label dongle")
 @click.option("--force", is_flag=True, help="Tetap buat walau sudah ada admin")
-def bootstrap_admin(username, full_name, unit, drive, label, force):
+@click.option("--no-dongle", is_flag=True, help="Uji coba: buat admin tanpa menulis dongle (server harus KOMSAR_REQUIRE_DONGLE=0)")
+def bootstrap_admin(username, full_name, unit, drive, label, force, no_dongle):
     """Buat admin pertama (password sementara) dan tulis KOMSAR.DONGLE ke flashdisk."""
     if not force and User.query.filter_by(is_admin=True).first():
         raise click.ClickException("Sudah ada admin. Pakai --force bila memang ingin menambah admin lewat CLI.")
+    if no_dongle:
+        try:
+            user, temp = us.create_with_temp_password(username, full_name, unit,
+                                                      int(current_app.config["ENROLL_WINDOW_HOURS"]), is_admin=True)
+        except (KomSaRError, ValueError) as e:
+            raise click.ClickException(str(e))
+        audit(USER_CREATE, target=user.username, user=user, is_admin=True, via="cli", dongle=False)
+        click.echo(f"Admin {user.username} dibuat TANPA dongle. User ID: {user.user_id}")
+        click.echo(f"Password sementara (ditampilkan sekali): {temp}")
+        return
     drives = desk.list_removable_drives()
     if not drives:
         raise click.ClickException("Tidak ada flashdisk removable yang terdeteksi.")
