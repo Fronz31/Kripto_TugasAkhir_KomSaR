@@ -157,6 +157,17 @@ pre.plain{white-space:pre-wrap;word-break:break-word;font:inherit;background:var
 .login-card .phrase strong{display:block;font-family:var(--head);font-stretch:87.5%;font-size:30px;line-height:1.2;font-weight:650;min-height:1.2em}
 .login-card .phrase strong:empty{min-height:0}
 
+/* ---- tahan untuk merekam: navy = siap, merah + titik amber berdenyut = sedang merekam ---- */
+button.hold{display:inline-flex;align-items:center;gap:10px;padding:14px 24px;font-size:17px;touch-action:none;user-select:none;-webkit-user-select:none}
+.hold .rec-dot{flex:none;width:12px;height:12px;border-radius:50%;background:var(--rail-teks)}
+.hold .rec-timer{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:400}
+.hold .rec-timer:empty,.hold.plain .rec-dot{display:none}
+.hold.recording,.hold.recording:hover{background:var(--bahaya);border-color:var(--bahaya)}
+.hold.recording .rec-dot{background:var(--segel);box-shadow:0 0 0 3px rgba(245,166,35,.35);animation:rec-pulse 1s ease-in-out infinite}
+.hold[aria-disabled=true]{opacity:.55;cursor:not-allowed}
+@keyframes rec-pulse{50%{opacity:.4;transform:scale(.7)}}
+@media (prefers-reduced-motion:reduce){.hold.recording .rec-dot{animation:none}}
+
 /* ---- layar sempit: rel jadi bilah atas yang membungkus ---- */
 @media (max-width:760px){
   .layout{display:block}

@@ -2,10 +2,10 @@
 {% block public %}
 <div class="card login-card" id="voice-verify">
   <div class="brand"><img class="brand-mark" src="{{ url_for('static', filename='brand/logo.svg') }}" alt="" width="56" height="56"><span class="brand-word">Kom<span>SaR</span></span></div><div class="tag">Langkah 2 dari 2: verifikasi suara</div>
-  <p>Halo, {{ pending.full_name }}. Tekan tombol di bawah, lalu ucapkan kalimat yang muncul dengan jelas.</p>
+  <p>Halo, {{ pending.full_name }}. Tekan dan tahan tombol di bawah sambil mengucapkan kalimat yang muncul dengan jelas, lalu lepas.</p>
   <p class="phrase" aria-live="polite"><strong id="voice-phrase"></strong></p>
-  <p id="voice-status" class="note" role="status"></p>
-  <p><button type="button" id="voice-start">Rekam suara</button> <a class="btn ghost" href="{{ url_for('auth.login') }}">Batal</a></p>
+  <p id="voice-status" class="note" role="status" aria-live="polite"></p>
+  <p><button type="button" id="voice-start" class="hold" aria-pressed="false" aria-describedby="voice-status"><span class="rec-dot" aria-hidden="true"></span><span id="voice-label">Tahan untuk merekam</span><span id="voice-timer" class="rec-timer" aria-hidden="true"></span></button> <a class="btn ghost" href="{{ url_for('auth.login') }}">Batal</a></p>
   <p class="note">Sesi login berlaku 3 menit. Gagal 3 kali: akun dikunci 15 menit.</p>
 </div>
 {% endblock %}

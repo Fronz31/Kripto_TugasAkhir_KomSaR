@@ -90,7 +90,12 @@ Bila `window.pywebview` tidak ada, halaman dibuka di browser biasa.
 | `read_dongle()` | `{"dongle_id", "token", "volume_serial"}` atau `null` bila tidak ada dongle valid |
 | `list_removable_drives()` | `[{"drive": "E:\\", "volume_serial": "1A2B3C4D"}]` (`volume_serial` bisa `null`) |
 | `write_dongle(drive, dongle_id, token)` | `true`. `drive` harus salah satu nilai `drive` dari `list_removable_drives()`, `dongle_id` UUID, `token` base64 dari 32 byte |
-| `record_voice(seconds)` | String base64 file WAV (16000 Hz, mono, PCM 16-bit). `seconds` dibatasi 2 sampai 10 |
+| `record_voice(seconds)` | String base64 file WAV (16000 Hz, mono, PCM 16-bit). `seconds` dibatasi 2 sampai 10. Rekaman durasi tetap, dipertahankan untuk kompatibilitas |
+| `start_recording()` | `true`. Mulai merekam (tahan untuk merekam). Bila sedang merekam, rekaman lama dibuang dan mulai ulang |
+| `stop_recording()` | String base64 file WAV (16000 Hz, mono, PCM 16-bit) berisi audio sejak `start_recording()`. Rekaman otomatis berhenti di 10 detik (audio 10 detik pertama disimpan). Error bila kurang dari 2 detik (`"Rekaman terlalu pendek. Tahan tombol minimal 2 detik."`) atau belum `start_recording()` |
+
+`start_recording`/`stop_recording` baru ada di exe versi tahan-untuk-merekam. Halaman server memeriksa
+`window.pywebview.api.start_recording`; bila tidak ada (exe lama), halaman memakai `record_voice(seconds)`.
 
 Contoh:
 
@@ -99,6 +104,13 @@ window.addEventListener('pywebviewready', async () => {
   const d = await window.pywebview.api.read_dongle();
   if (!d || d.error) { /* tampilkan pesan */ }
   const wav = await window.pywebview.api.record_voice(4);
+  if (wav.error) { /* tampilkan wav.error */ }
+});
+
+// Tahan untuk merekam: pointerdown -> start_recording(), pointerup -> stop_recording()
+button.addEventListener('pointerdown', () => window.pywebview.api.start_recording());
+button.addEventListener('pointerup', async () => {
+  const wav = await window.pywebview.api.stop_recording();
   if (wav.error) { /* tampilkan wav.error */ }
 });
 ```

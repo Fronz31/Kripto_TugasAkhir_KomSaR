@@ -109,6 +109,7 @@ class Bridge:
     def __init__(self, server_url):
         self._origin = origin(server_url)
         self._window = None
+        self._recorder = audio.Recorder()
 
     @_safe
     def read_dongle(self):
@@ -125,6 +126,15 @@ class Bridge:
     @_safe
     def record_voice(self, seconds):
         return base64.b64encode(audio.record_wav(seconds)).decode()
+
+    @_safe
+    def start_recording(self):
+        self._recorder.start()
+        return True
+
+    @_safe
+    def stop_recording(self):
+        return base64.b64encode(self._recorder.stop()).decode()
 
 
 def gate(window, server_url):

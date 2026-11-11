@@ -66,6 +66,13 @@ def test_login_page_desktop_only_message(web):
     assert 'name="dongle_id"' in page and 'data-require-dongle="1"' in page
 
 
+def has_hold_button(page):
+    """Tombol tahan-untuk-merekam: id lama tetap, plus label/timer/status untuk voice.js + login.js."""
+    return all(s in page for s in ('id="voice-start" class="hold" aria-pressed="false"',
+                                   '<span id="voice-label">Tahan untuk merekam</span>', 'id="voice-timer"',
+                                   'id="voice-phrase"', 'id="voice-status"', 'login.js', 'voice.js'))
+
+
 def test_first_login_then_voice_login(web):
     admin = login(web, "admin01")
     page = text(admin.post("/users/add", data={"username": "deni01", "full_name": "Deni", "unit": "D",
@@ -89,7 +96,8 @@ def test_first_login_then_voice_login(web):
     assert "tidak sama" in change("passwordbaru1", "lain12345")
     assert "harus berbeda" in change(temp)
     assert "minimal 8" in change("pendek")
-    assert "Daftarkan suara" in change("passwordbaru1")
+    page = change("passwordbaru1")
+    assert "Daftarkan suara" in page and has_hold_button(page) and 'id="voice-progress"' in page
     assert api(c, "/api/voice/challenge", {"purpose": "verify"}).status_code == 403
     assert enroll_samples(c).get_json() == {"ok": True}
     s = sess(c)
@@ -104,7 +112,7 @@ def test_first_login_then_voice_login(web):
     assert GENERIC in text(login_step1(web, c, "deni01", temp, dongle()))     # password sementara tidak berlaku
     r = login_step1(web, c, "deni01", "passwordbaru1", dongle())
     assert r.headers["Location"].endswith("/login/voice")
-    assert "Rekam suara" in text(c.get("/login/voice"))
+    assert has_hold_button(text(c.get("/login/voice")))
     assert c.get("/login/enroll").status_code == 302                    # tidak bisa daftar ulang sendiri
     assert api(c, "/api/voice/challenge", {"purpose": "enroll"}).status_code == 403
     assert voice_verify(c).get_json() == {"ok": True}
