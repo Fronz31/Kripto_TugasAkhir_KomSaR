@@ -43,8 +43,8 @@ Dengan `KOMSAR_SEED_DEMO=1` dibuat akun contoh (password semua: `komsar123`): `a
 `budi01`, `citra01`, `deni01`. User ID-nya dicetak di konsol saat dibuat; admin juga melihatnya di menu Pengguna.
 **Jangan pernah memakai kelima variabel di atas di server produksi** (akun contoh hanya untuk development).
 
-Opsional: `python scripts/generate_covers.py` membuat cover contoh untuk steganografi (ganti dengan gambar
-PNG tim di `assets/covers/`).
+Gambar cover steganografi ada di `assets/covers/` (foto CC0/public domain, sumbernya di
+`assets/covers/SUMBER.md`). Cover tambahan cukup disalin ke folder itu sebagai PNG.
 
 Test: `.venv\Scripts\python -m pytest -q` (SQLite di memori, `VOICE_BACKEND=fake`, Argon2 diringankan).
 

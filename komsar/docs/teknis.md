@@ -150,8 +150,7 @@ komsar/
 ├── requirements.txt        # server tanpa torch (cukup untuk test)
 ├── requirements-server.txt # + speechbrain/torch untuk verifikasi suara
 ├── .env.example            # contoh konfigurasi
-├── assets/covers/          # gambar cover PNG untuk steganografi
-├── scripts/generate_covers.py
+├── assets/covers/          # foto cover PNG untuk steganografi (sumber: SUMBER.md)
 ├── instance/               # SQLite lokal untuk development (tidak masuk git)
 ├── docs/                   # deploy, uji manual, keamanan, rencana
 ├── tests/                  # pengujian pytest server
