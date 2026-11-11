@@ -1,12 +1,12 @@
-{% extends 'base.html' %}{% from '_macros.html' import kind_badge, status_badge %}
+{% extends 'base.html' %}{% from '_macros.html' import kind_badge, status_badge, seal %}
 {% block title %}Riwayat File{% endblock %}
 {% block content %}
-<h1>Riwayat File</h1><div class="sub">File, gambar, dan aset penting yang Anda kirim dan terima. Isi hanya dapat dibuka penerima lewat Decryption Center.</div>
-<div class="card"><div class="table-wrap"><table><tr><th>Nama</th><th>Ukuran</th><th>Jenis</th><th>Arah</th><th>Lawan bicara &amp; status</th><th>Waktu</th><th></th></tr>
-{% for f in files %}<tr><td>{{ f.name }}</td><td>{{ (f.size / 1024)|round(1) }} KB</td><td>{{ kind_badge(f) }}</td>
+<h1>Riwayat file</h1><p class="sub">File, gambar, dan aset penting yang Anda kirim dan terima. Isi hanya dapat dibuka penerima lewat Decryption Center.</p>
+<div class="card flush"><div class="table-wrap"><table><tr><th></th><th>Nama</th><th>Ukuran</th><th>Jenis</th><th>Arah</th><th>Lawan bicara &amp; status</th><th>Waktu</th><th></th></tr>
+{% for f in files %}<tr><td>{{ seal(f.counterparts|selectattr('status', 'eq', 'decrypted')|list) }}</td><td>{{ f.name }}</td><td>{{ (f.size / 1024)|round(1) }} KB</td><td>{{ kind_badge(f) }}</td>
 <td>{{ 'Terkirim' if f.sent else 'Diterima' }}</td>
-<td>{% for c in f.counterparts %}<a href="{{ url_for('chat.conversation', username=c.username) }}">{{ c.username }}</a> {{ status_badge(c.status) }}{% if c.error %} <span class="note">{{ c.error }}</span>{% endif %} {% endfor %}</td>
+<td>{% for c in f.counterparts %}<a href="{{ url_for('chat.conversation', username=c.username) }}">{{ c.username }}</a> {{ status_badge(c.status) }}{% if c.error %} <span class="note">{{ c.error }}</span>{% endif %}{% if not loop.last %}<br>{% endif %}{% endfor %}</td>
 <td>{{ f.created_at|dt }}</td>
 <td>{% if not f.sent %}<a class="btn sm" href="{{ url_for('decrypt.center', d=f.delivery_id) }}">Buka</a>{% endif %}</td></tr>
-{% else %}<tr><td colspan="7" class="note">Belum ada file.</td></tr>{% endfor %}</table></div></div>
+{% else %}<tr><td colspan="8" class="note">Belum ada file.</td></tr>{% endfor %}</table></div></div>
 {% endblock %}
