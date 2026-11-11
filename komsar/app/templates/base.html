@@ -2,6 +2,8 @@
 <html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}{% endblock %} - KomSaR</title>
 <link rel="preload" href="{{ url_for('static', filename='fonts/atkinson-hyperlegible-latin-400-normal.woff2') }}" as="font" type="font/woff2" crossorigin>
+<link rel="icon" href="{{ url_for('static', filename='brand/favicon.ico') }}" sizes="any">
+<link rel="icon" href="{{ url_for('static', filename='brand/app-icon.svg') }}" type="image/svg+xml">
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 {% if me or pending %}<meta name="csrf-token" content="{{ csrf_token() }}">{% endif %}</head>
 <body{% if me %} data-session="1"{% endif %}{% if config.KOMSAR_REQUIRE_DONGLE %} data-require-dongle="1"{% endif %}>
@@ -9,7 +11,7 @@
 {% macro nav(endpoint, label, also=()) %}<a class="nav" href="{{ url_for(endpoint) }}"{% if request.endpoint == endpoint or request.endpoint in also %} aria-current="page"{% endif %}>{{ label }}</a>{% endmacro %}
 <div class="layout">
 <aside class="side">
-  <a class="brand" href="{{ url_for('dashboard.index') }}">Kom<span>SaR</span></a><div class="tag">Komunikasi Satuan Rakyat</div>
+  <a class="brand" href="{{ url_for('dashboard.index') }}"><img class="brand-mark" src="{{ url_for('static', filename='brand/logo-white.svg') }}" alt="" width="34" height="34"><span class="brand-word">Kom<span>SaR</span></span></a><div class="tag">Komunikasi Satuan Rakyat</div>
   <nav aria-label="Navigasi utama">
   {{ nav('dashboard.index', 'Beranda') }}
   <p class="nav-group">Komunikasi</p>

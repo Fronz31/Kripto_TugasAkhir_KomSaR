@@ -1,7 +1,7 @@
 {% extends 'base.html' %}{% block title %}Verifikasi suara{% endblock %}
 {% block public %}
 <div class="card login-card" id="voice-verify">
-  <div class="brand">Kom<span>SaR</span></div><div class="tag">Langkah 2 dari 2: verifikasi suara</div>
+  <div class="brand"><img class="brand-mark" src="{{ url_for('static', filename='brand/logo.svg') }}" alt="" width="56" height="56"><span class="brand-word">Kom<span>SaR</span></span></div><div class="tag">Langkah 2 dari 2: verifikasi suara</div>
   <p>Halo, {{ pending.full_name }}. Tekan tombol di bawah, lalu ucapkan kalimat yang muncul dengan jelas.</p>
   <p class="phrase" aria-live="polite"><strong id="voice-phrase"></strong></p>
   <p id="voice-status" class="note" role="status"></p>

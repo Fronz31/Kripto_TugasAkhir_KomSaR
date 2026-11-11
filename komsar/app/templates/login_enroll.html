@@ -1,7 +1,7 @@
 {% extends 'base.html' %}{% block title %}Login pertama{% endblock %}
 {% block public %}
 <div class="card login-card">
-  <div class="brand">Kom<span>SaR</span></div><div class="tag">Login pertama: ganti password lalu daftarkan suara</div>
+  <div class="brand"><img class="brand-mark" src="{{ url_for('static', filename='brand/logo.svg') }}" alt="" width="56" height="56"><span class="brand-word">Kom<span>SaR</span></span></div><div class="tag">Login pertama: ganti password lalu daftarkan suara</div>
   <p>Halo, {{ pending.full_name }}. Akun Anda baru dibuat atau suaranya di-reset admin.</p>
   {% if not pw_changed %}
   <h2>1. Ganti password sementara</h2>
