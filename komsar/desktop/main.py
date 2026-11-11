@@ -32,13 +32,20 @@ h1{font-size:1.6rem;margin:0 0 .5rem}p{color:#94a3b8;margin:0}
 </body></html>"""
 
 
-def load_server_url():
+def _read_url(path):
     try:
-        with open(os.path.join(BASE_DIR, "config.json"), encoding="utf-8") as f:
-            url = json.load(f).get("server_url")
-    except (OSError, ValueError):
-        url = None
-    url = url or os.environ.get("KOMSAR_SERVER_URL")
+        with open(path, encoding="utf-8") as f:
+            return json.load(f).get("server_url")
+    except (OSError, ValueError, AttributeError):
+        return None
+
+
+def load_server_url():
+    """config.json di samping exe > KOMSAR_SERVER_URL > config.json yang dibundel di dalam exe (--onefile)."""
+    bundled = os.path.join(getattr(sys, "_MEIPASS", BASE_DIR), "config.json")
+    url = (_read_url(os.path.join(BASE_DIR, "config.json"))
+           or os.environ.get("KOMSAR_SERVER_URL")
+           or _read_url(bundled))
     if not url:
         raise SystemExit("server_url tidak ditemukan di config.json atau KOMSAR_SERVER_URL")
     return url.rstrip("/")
