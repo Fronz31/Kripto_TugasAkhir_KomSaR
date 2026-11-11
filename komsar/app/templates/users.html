@@ -2,19 +2,19 @@
 {% block title %}Pengguna{% endblock %}
 {% block content %}
 {% include '_temp_password.html' %}
-<h1>Pengguna</h1><div class="sub">{{ 'Kelola akun pengguna. User ID hanya terlihat oleh admin.' if me.is_admin else 'Daftar pengguna (hanya admin yang dapat mengubah).' }}</div>
-<div class="card"><form method="get"><div class="row"><div><input type="text" name="q" value="{{ q }}" placeholder="Cari username, nama, atau unit"></div><div><button type="submit">Cari</button></div></div></form></div>
-<div class="card"><div class="table-wrap"><table><tr><th>Username</th>{% if me.is_admin %}<th>User ID</th>{% endif %}<th>Nama</th><th>Unit</th><th>Peran</th><th>Status</th>{% if me.is_admin %}<th></th>{% endif %}</tr>
-{% for u in users %}<tr><td>{% if u.id != me.id %}<a href="{{ url_for('chat.conversation', username=u.username) }}" title="Percakapan">{{ u.username }}</a>{% else %}{{ u.username }}{% endif %}</td>{% if me.is_admin %}<td>{{ u.user_id }}</td>{% endif %}<td>{{ u.full_name }}</td><td>{{ u.unit }}</td><td>{{ 'Admin' if u.is_admin else 'User' }}</td>
+<h1>Pengguna</h1><p class="sub">{{ 'Kelola akun pengguna. User ID hanya terlihat oleh admin.' if me.is_admin else 'Daftar pengguna (hanya admin yang dapat mengubah).' }}</p>
+<form method="get" class="search" role="search"><div class="row"><div><input type="text" aria-label="Cari pengguna" name="q" value="{{ q }}" placeholder="Cari username, nama, atau unit"></div><div class="grow-0"><button type="submit">Cari</button></div></div></form>
+<div class="card flush"><div class="table-wrap"><table><tr><th>Username</th>{% if me.is_admin %}<th>User ID</th>{% endif %}<th>Nama</th><th>Unit</th><th>Peran</th><th>Status</th>{% if me.is_admin %}<th></th>{% endif %}</tr>
+{% for u in users %}<tr><td>{% if u.id != me.id %}<a href="{{ url_for('chat.conversation', username=u.username) }}" title="Percakapan">{{ u.username }}</a>{% else %}{{ u.username }}{% endif %}</td>{% if me.is_admin %}<td class="mono">{{ u.user_id }}</td>{% endif %}<td>{{ u.full_name }}</td><td>{{ u.unit }}</td><td>{{ 'Admin' if u.is_admin else 'User' }}</td>
 <td>{{ 'Aktif' if u.is_active else 'Nonaktif' }}</td>
-{% if me.is_admin %}<td><a class="btn ghost sm" href="{{ url_for('users.edit', pk=u.id) }}">Edit</a>
+{% if me.is_admin %}<td class="actions"><a class="btn ghost sm" href="{{ url_for('users.edit', pk=u.id) }}">Edit</a>
 <form class="inline" method="post" action="{{ url_for('users.delete', pk=u.id) }}" data-confirm="Hapus pengguna {{ u.username }}?">{{ csrf() }}<button class="btn danger sm" type="submit">Hapus</button></form></td>{% endif %}</tr>
 {% else %}<tr><td colspan="7" class="note">Tidak ada pengguna.</td></tr>{% endfor %}</table></div></div>
 {% if me.is_admin %}<div class="card"><h2>Tambah pengguna</h2><form method="post" action="{{ url_for('users.add') }}">{{ csrf() }}
-  <div class="row"><div><label>Username</label><input type="text" name="username" required></div><div><label>Unit/Satuan</label><input type="text" name="unit" required></div></div>
-  <label>Nama lengkap</label><input type="text" name="full_name" required>
+  <div class="row"><div><label for="n-username">Username</label><input type="text" id="n-username" name="username" required></div><div><label for="n-unit">Unit/Satuan</label><input type="text" id="n-unit" name="unit" required></div></div>
+  <label for="n-full_name">Nama lengkap</label><input type="text" id="n-full_name" name="full_name" required>
   <label><input type="checkbox" name="is_admin"> Jadikan admin</label>
   <p class="note">User ID dan password sementara dibuat otomatis oleh sistem dan ditampilkan sekali setelah pengguna ditambahkan.
   Pengguna wajib mendaftarkan suara dan mengganti password saat login pertama.</p>
-  <p><button type="submit">Tambah</button></p></form></div>{% endif %}
+  <p><button type="submit">Tambah pengguna</button></p></form></div>{% endif %}
 {% endblock %}

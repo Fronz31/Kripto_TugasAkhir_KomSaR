@@ -1,14 +1,15 @@
-{% extends 'base.html' %}{% from '_macros.html' import kind_badge, status_badge %}
+{% extends 'base.html' %}{% from '_macros.html' import kind_badge, status_badge, seal %}
 {% block title %}Percakapan{% endblock %}
 {% block content %}
-<h1>Percakapan dengan {{ other.full_name }}</h1><div class="sub">{{ other.username }} · {{ other.unit }} · isi tetap terenkripsi sampai dibuka di Decryption Center.</div>
-<div class="card">
-{% for i in items %}<div class="msg {{ 'important' if i.is_important }}">{{ kind_badge(i) }} {{ status_badge(i.status) }}
-  <div class="meta">{{ ('dari ' ~ other.username) if i.incoming else ('Anda → ' ~ other.username) }} · {{ i.created_at|dt }}</div>
-  <div class="lock">🔒 Terenkripsi{% if i.file %} · {{ i.file.name }} ({{ (i.file.size / 1024)|round(1) }} KB){% endif %}
+<h1>Percakapan dengan {{ other.full_name }}</h1><p class="sub"><span class="mono">{{ other.username }}</span>, {{ other.unit }}. Isi tetap terenkripsi sampai dibuka di Decryption Center.</p>
+<div class="card"><div class="register">
+{% for i in items %}<div class="msg {{ 'important' if i.is_important }}">{{ seal(i.status == 'decrypted') }}
+  <div><div class="head">{{ kind_badge(i) }} {{ status_badge(i.status) }}</div>
+  <div class="meta"><span>{{ ('dari ' ~ other.username) if i.incoming else ('Anda → ' ~ other.username) }}</span><span>{{ i.created_at|dt }}</span></div>
+  <div class="lock">Terenkripsi{% if i.file %}: {{ i.file.name }} ({{ (i.file.size / 1024)|round(1) }} KB){% endif %}
     {% if i.cipher_preview %}<code>{{ i.cipher_preview }}…</code>{% endif %}</div>
-  {% if i.error %}<div class="note">{{ i.error }}</div>{% endif %}
-  {% if i.incoming %}<div class="note"><a class="btn sm" href="{{ url_for('decrypt.center', d=i.delivery_id) }}">Buka</a></div>{% endif %}</div>
-{% else %}<p class="note">Belum ada pesan dengan pengguna ini.</p>{% endfor %}</div>
+  {% if i.error %}<div class="note">{{ i.error }}</div>{% endif %}</div>
+  <div class="side-col">{% if i.incoming %}<a class="btn sm" href="{{ url_for('decrypt.center', d=i.delivery_id) }}">Buka</a>{% endif %}</div></div>
+{% else %}<p class="empty">Belum ada pesan dengan pengguna ini.</p>{% endfor %}</div></div>
 <p><a class="btn ghost sm" href="{{ url_for('chat.index') }}">Kirim pesan baru</a></p>
 {% endblock %}

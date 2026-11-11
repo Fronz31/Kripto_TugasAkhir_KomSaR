@@ -3,8 +3,8 @@
 <div class="card login-card" id="voice-verify">
   <div class="brand">Kom<span>SaR</span></div><div class="tag">Langkah 2 dari 2: verifikasi suara</div>
   <p>Halo, {{ pending.full_name }}. Tekan tombol di bawah, lalu ucapkan kalimat yang muncul dengan jelas.</p>
-  <p class="phrase"><strong id="voice-phrase"></strong></p>
-  <p id="voice-status" class="note"></p>
+  <p class="phrase" aria-live="polite"><strong id="voice-phrase"></strong></p>
+  <p id="voice-status" class="note" role="status"></p>
   <p><button type="button" id="voice-start">Rekam suara</button> <a class="btn ghost" href="{{ url_for('auth.login') }}">Batal</a></p>
   <p class="note">Sesi login berlaku 3 menit. Gagal 3 kali: akun dikunci 15 menit.</p>
 </div>

@@ -1,25 +1,33 @@
 <!doctype html>
 <html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{% block title %}{% endblock %} · KomSaR</title>
+<title>{% block title %}{% endblock %} - KomSaR</title>
+<link rel="preload" href="{{ url_for('static', filename='fonts/atkinson-hyperlegible-latin-400-normal.woff2') }}" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 {% if me or pending %}<meta name="csrf-token" content="{{ csrf_token() }}">{% endif %}</head>
 <body{% if me %} data-session="1"{% endif %}{% if config.KOMSAR_REQUIRE_DONGLE %} data-require-dongle="1"{% endif %}>
 {% if me %}
+{% macro nav(endpoint, label, also=()) %}<a class="nav" href="{{ url_for(endpoint) }}"{% if request.endpoint == endpoint or request.endpoint in also %} aria-current="page"{% endif %}>{{ label }}</a>{% endmacro %}
 <div class="layout">
 <aside class="side">
-  <div class="brand">Kom<span>SaR</span></div><div class="tag">Komunikasi Satuan Rakyat</div>
-  <a class="nav" href="{{ url_for('dashboard.index') }}">Dashboard</a>
-  <a class="nav" href="{{ url_for('chat.index') }}">Pesan</a>
-  <a class="nav" href="{{ url_for('transfer.index') }}">Kirim File</a>
-  <a class="nav" href="{{ url_for('transfer.files') }}">Riwayat File</a>
-  <a class="nav" href="{{ url_for('transfer.assets') }}">Aset Penting</a>
-  <a class="nav" href="{{ url_for('decrypt.center') }}">Dekripsi</a>
-  <a class="nav" href="{{ url_for('users.index') }}">Pengguna</a>
-  {% if me.is_admin %}<a class="nav" href="{{ url_for('admin.chain') }}">Blockchain Records</a>
-  <a class="nav" href="{{ url_for('admin.dongles') }}">Dongle</a>
-  <a class="nav" href="{{ url_for('admin.audit_log') }}">Audit Log</a>{% endif %}
-  <a class="nav" href="{{ url_for('auth.profile') }}">Profil</a>
-  <div class="who">{{ me.full_name }}<br>{{ me.unit }}
+  <a class="brand" href="{{ url_for('dashboard.index') }}">Kom<span>SaR</span></a><div class="tag">Komunikasi Satuan Rakyat</div>
+  <nav aria-label="Navigasi utama">
+  {{ nav('dashboard.index', 'Beranda') }}
+  <p class="nav-group">Komunikasi</p>
+  {{ nav('chat.index', 'Pesan', ('chat.conversation',)) }}
+  {{ nav('transfer.index', 'Kirim file') }}
+  {{ nav('transfer.files', 'Riwayat file') }}
+  {{ nav('decrypt.center', 'Dekripsi') }}
+  {% if not me.is_admin %}{{ nav('users.index', 'Pengguna') }}{% endif %}
+  <p class="nav-group">Aset</p>
+  {{ nav('transfer.assets', 'Aset penting') }}
+  {% if me.is_admin %}<p class="nav-group">Admin</p>
+  {{ nav('users.index', 'Pengguna', ('users.edit',)) }}
+  {{ nav('admin.dongles', 'Dongle') }}
+  {{ nav('admin.audit_log', 'Audit log') }}
+  {{ nav('admin.chain', 'Blockchain') }}{% endif %}
+  </nav>
+  <div class="who">{{ nav('auth.profile', 'Profil') }}
+    <b>{{ me.full_name }}</b>{{ me.unit }}
     <form method="post" action="{{ url_for('auth.logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn ghost sm" type="submit">Keluar</button></form></div>
 </aside>
 <main>{% include '_flash.html' %}{% block content %}{% endblock %}</main>

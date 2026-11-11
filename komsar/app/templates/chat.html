@@ -1,25 +1,27 @@
-{% extends 'base.html' %}{% from '_macros.html' import csrf, kind_badge, status_badge, recipients_input, sent_table %}
+{% extends 'base.html' %}{% from '_macros.html' import csrf, kind_badge, status_badge, recipients_input, sent_table, seal %}
 {% block title %}Pesan{% endblock %}
 {% block content %}
-<h1>Pesan</h1><div class="sub">Semua pesan dikirim sebagai ciphertext; gambar steganografi membawa kunci untuk penerima.</div>
+<h1>Pesan</h1><p class="sub">Semua pesan dikirim sebagai ciphertext; gambar steganografi membawa kunci untuk penerima.</p>
 <div class="card"><h2>Kirim pesan</h2>
 <form method="post" action="{{ url_for('chat.send') }}">{{ csrf() }}
   {{ recipients_input() }}
-  <label>Pesan</label><textarea name="message" required></textarea>
-  <div class="row"><div><label>Kunci rahasia (min. 4 karakter)</label><input type="password" name="secret" autocomplete="off" required></div>
-  <div><label>&nbsp;</label><label><input type="checkbox" name="important"> Pesan penting (3 lapis enkripsi)</label></div></div>
+  <label for="message">Pesan</label><textarea id="message" name="message" required></textarea>
+  <div class="row"><div><label for="secret">Kunci rahasia (min. 4 karakter)</label><input type="password" id="secret" name="secret" autocomplete="off" required></div>
+  <div><label><input type="checkbox" name="important"> Pesan penting (3 lapis enkripsi)</label></div></div>
   <p><button type="submit">Enkripsi &amp; kirim</button></p>
 </form></div>
 <div class="card"><h2>Kotak masuk</h2>
-{% for i in inbox %}<div class="msg {{ 'important' if i.is_important }}">{{ kind_badge(i) }} {{ status_badge(i.status) }}
-  <div class="meta">dari {{ i.sender.full_name }} ({{ i.sender.unit }}) · {{ i.created_at|dt }} · <a href="{{ url_for('chat.conversation', username=i.sender.username) }}">Percakapan</a></div>
+<div class="register">
+{% for i in inbox %}<div class="msg {{ 'important' if i.is_important }}">{{ seal(i.text is not none) }}
+  <div><div class="head">{{ kind_badge(i) }} {{ status_badge(i.status) }}</div>
+  <div class="meta"><span>dari {{ i.sender.full_name }} ({{ i.sender.unit }})</span><span>{{ i.created_at|dt }}</span><a href="{{ url_for('chat.conversation', username=i.sender.username) }}">Percakapan</a></div>
   {% if i.text is not none %}<pre class="plain">{{ i.text }}</pre>
-  {% else %}<div class="lock">🔒 Terenkripsi{% if i.file %} · {{ i.file.name }} ({{ (i.file.size / 1024)|round(1) }} KB){% endif %}</div>{% endif %}
-  <img class="thumb" alt="Gambar steganografi" src="{{ url_for('decrypt.stego', delivery_id=i.delivery_id, inline=1) }}">
-  <div class="note">Lampiran:
-    <a href="{{ url_for('decrypt.cipher', delivery_id=i.delivery_id) }}">ciphertext</a> ·
-    <a href="{{ url_for('decrypt.stego', delivery_id=i.delivery_id) }}">gambar steganografi</a>
-    {% if i.status != 'decrypted' or (i.text is none and not i.file) %} · <a class="btn sm" href="{{ url_for('decrypt.center', d=i.delivery_id) }}">Dekripsi</a>{% endif %}</div></div>
-{% else %}<p class="note">Belum ada pesan masuk.</p>{% endfor %}</div>
+  {% else %}<div class="lock">Terenkripsi{% if i.file %}: {{ i.file.name }} ({{ (i.file.size / 1024)|round(1) }} KB){% endif %}</div>{% endif %}
+  <div class="links">Lampiran:
+    <a href="{{ url_for('decrypt.cipher', delivery_id=i.delivery_id) }}">ciphertext</a>
+    <a href="{{ url_for('decrypt.stego', delivery_id=i.delivery_id) }}">gambar steganografi</a></div></div>
+  <div class="side-col"><img class="thumb" alt="Gambar steganografi" src="{{ url_for('decrypt.stego', delivery_id=i.delivery_id, inline=1) }}">
+    {% if i.status != 'decrypted' or (i.text is none and not i.file) %}<a class="btn sm" href="{{ url_for('decrypt.center', d=i.delivery_id) }}">Dekripsi</a>{% endif %}</div></div>
+{% else %}<p class="empty">Belum ada pesan masuk.</p>{% endfor %}</div></div>
 <div class="card"><h2>Terkirim</h2>{{ sent_table(sent) }}</div>
 {% endblock %}

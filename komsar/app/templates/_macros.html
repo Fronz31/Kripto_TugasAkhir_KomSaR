@@ -1,14 +1,15 @@
 {% macro csrf() %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endmacro %}
 {% macro kind_badge(item) %}<span class="badge {{ 'important' if item.is_important else 'normal' }}">{{ item.label }}</span>{% endmacro %}
-{% macro status_badge(s) %}<span class="badge st">{{ s|status }}</span>{% endmacro %}
+{% macro status_badge(s) %}<span class="badge st st-{{ s }}">{{ s|status }}</span>{% endmacro %}
+{% macro seal(opened) %}<span class="seal{{ ' open' if opened }}" aria-hidden="true"></span>{% endmacro %}
 {% macro sent_table(sent) %}
 <div class="table-wrap"><table><tr><th>Jenis</th><th>Waktu</th><th>Penerima &amp; status</th><th>Gambar stego</th></tr>
 {% for m in sent %}<tr><td>{{ kind_badge(m) }}</td><td>{{ m.created_at|dt }}</td>
-<td>{% for r in m.recipients %}<a href="{{ url_for('chat.conversation', username=r.username) }}">{{ r.username }}</a> {{ status_badge(r.status) }}{% if r.error %} <span class="note">{{ r.error }}</span>{% endif %} {% endfor %}</td>
+<td>{% for r in m.recipients %}<a href="{{ url_for('chat.conversation', username=r.username) }}">{{ r.username }}</a> {{ status_badge(r.status) }}{% if r.error %} <span class="note">{{ r.error }}</span>{% endif %}{% if not loop.last %}<br>{% endif %}{% endfor %}</td>
 <td>{{ m.recipients|selectattr('status', 'ne', 'failed')|list|length }} gambar (1 per penerima)</td></tr>
 {% else %}<tr><td colspan="4" class="note">Belum ada pengiriman.</td></tr>{% endfor %}</table></div>
 {% endmacro %}
 {% macro recipients_input() %}
-<label>Penerima (username, pisahkan dengan koma)</label>
-<input type="text" name="recipients" placeholder="contoh: budi01, citra01" autocomplete="off" required>
+<label for="recipients">Penerima (username, pisahkan dengan koma)</label>
+<input type="text" name="recipients" id="recipients" placeholder="contoh: budi01, citra01" autocomplete="off" required>
 {% endmacro %}
