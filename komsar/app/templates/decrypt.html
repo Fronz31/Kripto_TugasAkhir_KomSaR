@@ -4,18 +4,18 @@
 <h1>Decryption Center</h1>
 <p class="sub">Pilih data dan gambar steganografinya, masukkan User ID untuk mengekstrak kunci dari gambar, lalu ketik ulang kunci itu untuk membuka data.</p>
 <div class="steps">
-<div class="card{{ ' active' if not step2 and not result }}"><h2><span class="n">1</span>Gambar steganografi &amp; ID</h2>
+<div class="card{{ ' active' if not step2 and not result }}"><h2>Langkah 1: Gambar steganografi &amp; ID</h2>
 <form method="post" action="{{ url_for('decrypt.center') }}">{{ csrf() }}<input type="hidden" name="action" value="extract">
   <div class="row"><div><label for="kind-filter">Jenis data</label><select id="kind-filter" name="kind">{% for v, t in kinds %}<option value="{{ v }}">{{ t }}</option>{% endfor %}</select></div>
   <div><label for="delivery-select">Data yang dibuka</label><select id="delivery-select" name="delivery_id" required>
     {% for i in items %}<option value="{{ i.delivery_id }}" data-kind="{{ i.kind }}" {{ 'selected' if i.delivery_id == chosen }}>{{ i.label }}, dari {{ i.sender.username }}, {{ i.created_at|dt }}{% if i.file %}, {{ i.file.name }}{% endif %}</option>{% endfor %}</select></div></div>
-  <label for="stego-preview">Gambar steganografi untuk data ini</label>
+  <label>Gambar steganografi untuk data ini</label>
   <img id="stego-preview" class="preview{{ '' if chosen else ' hidden' }}" alt="Gambar steganografi" data-url="{{ url_for('decrypt.stego', delivery_id='__ID__', inline=1) }}" src="{% if chosen %}{{ url_for('decrypt.stego', delivery_id=chosen, inline=1) }}{% endif %}">
   <label for="user_id">User ID Anda</label><input type="password" id="user_id" name="user_id" autocomplete="off" placeholder="XXXX-XXXX-XXXX" required>
   <p><button type="submit">Ekstrak kunci dari gambar</button></p>
 </form></div>
 {% if step2 %}
-<div class="card active"><h2><span class="n">2</span>Masukkan kunci hasil steganografi</h2>
+<div class="card active"><h2>Langkah 2: Masukkan kunci hasil steganografi</h2>
 <p>Kunci yang berhasil diekstrak dari gambar:</p>
 <div class="keybox" id="extracted-key"><code>{{ step2.secret }}</code></div>
 <form method="post" action="{{ url_for('decrypt.center') }}">{{ csrf() }}<input type="hidden" name="action" value="decrypt"><input type="hidden" name="token" value="{{ step2.token }}">
