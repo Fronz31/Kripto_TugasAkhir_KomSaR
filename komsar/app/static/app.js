@@ -48,7 +48,7 @@ function forceLogout() {     // /logout hanya menerima POST + CSRF
   f.appendChild(i); document.body.appendChild(f); f.submit();
 }
 
-if (csrfMeta && document.body.getAttribute("data-session")) {   // hanya setelah login penuh, bukan sesi pending
+if (csrfMeta && document.body.getAttribute("data-session") && document.body.getAttribute("data-require-dongle")) {   // hanya setelah login penuh, bukan sesi pending
   window.komsar.whenDesktop(function () {
     var beat = function () {
       window.pywebview.api.read_dongle().then(function (d) {
