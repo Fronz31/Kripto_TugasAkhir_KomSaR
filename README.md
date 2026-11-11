@@ -149,7 +149,10 @@ di laptop tim ([checklist](komsar/docs/uji-manual.md)).
 
 Tugas akhir mata kuliah Kriptografi.
 
-- [NAMA ANGGOTA] ([NIM])
-- [NAMA ANGGOTA] ([NIM])
+| Nama | NIM |
+|---|---|
+| Bintang Ramadhan | 123240073 |
+| Fahmi Firdaus | 123240055 |
+| Farabian Nabil Alauzi | 123240058 |
 
 Kontributor repositori: [Fronz31](https://github.com/Fronz31), [TangRmdhn](https://github.com/TangRmdhn).
