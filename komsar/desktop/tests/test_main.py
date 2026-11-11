@@ -114,3 +114,19 @@ def test_server_requires_dongle_unreachable_raises(monkeypatch, error):
     monkeypatch.setattr(main.urllib.request, "urlopen", config_urlopen(error))
     with pytest.raises(OSError):
         main.server_requires_dongle(SERVER)
+
+
+def test_load_server_url_priority(monkeypatch, tmp_path):
+    side, bundle = tmp_path / "side", tmp_path / "bundle"
+    side.mkdir(), bundle.mkdir()
+    (bundle / "config.json").write_text('{"server_url": "https://bundled.example/"}', encoding="utf-8")
+    monkeypatch.setattr(main, "BASE_DIR", str(side))
+    monkeypatch.setattr(main.sys, "_MEIPASS", str(bundle), raising=False)
+    monkeypatch.delenv("KOMSAR_SERVER_URL", raising=False)
+    assert main.load_server_url() == "https://bundled.example"            # hanya exe
+
+    monkeypatch.setenv("KOMSAR_SERVER_URL", "https://env.example")
+    assert main.load_server_url() == "https://env.example"
+
+    (side / "config.json").write_text('{"server_url": "https://side.example"}', encoding="utf-8")
+    assert main.load_server_url() == "https://side.example"               # config di samping exe menang
