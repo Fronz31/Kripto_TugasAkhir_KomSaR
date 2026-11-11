@@ -16,6 +16,11 @@ GENERIC_ERROR = "Username, password, atau dongle tidak valid."
 EXPIRED_ENROLL = "Batas waktu login pertama sudah lewat. Akun dikunci; hubungi admin untuk reset."
 
 
+def admin_skip_voice(user) -> bool:
+    # shortcut: flag uji coba sementara; matikan KOMSAR_ADMIN_SKIP_VOICE setelah suara admin terdaftar.
+    return bool(user.is_admin and current_app.config.get("KOMSAR_ADMIN_SKIP_VOICE"))
+
+
 def dev_skip_voice() -> bool:
     # Hanya development: backend suara palsu + mode debug. Konfigurasi produksi tidak pernah memenuhi keduanya.
     return current_app.debug and current_app.config["VOICE_BACKEND"] == "fake"
@@ -63,6 +68,11 @@ def login():
             return _fail(username, "dongle")
         dongle_id = dongle.id
 
+    if admin_skip_voice(user):
+        start_pending(user, dongle_id)
+        complete_login(user)
+        audit(LOGIN_SUCCESS, target=username, user=user, factor="admin_skip_voice")
+        return redirect(url_for("dashboard.index"))
     if user.must_enroll and enroll_expired(user):
         audit(LOGIN_FAILED, target=username, reason="expired")
         flash(EXPIRED_ENROLL, "error")
