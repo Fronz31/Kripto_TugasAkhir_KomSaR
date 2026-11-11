@@ -47,8 +47,9 @@ Lokasi kode tiap algoritma ada di [`komsar/docs/teknis.md`](komsar/docs/teknis.m
 ## Cara pakai
 
 1. Unduh **`KomSaR.exe`** dari [rilis terbaru](https://github.com/Fronz31/Kripto_TugasAkhir_KomSaR/releases/latest).
-   Exe ini klien Windows; alamat server diatur lewat `config.json` di samping exe bila perlu
-   (lihat [`komsar/desktop/README.md`](komsar/desktop/README.md)).
+   Satu file, tanpa instalasi; alamat server sudah tertanam di dalamnya. Untuk server lain, taruh `config.json`
+   di samping exe (lihat [`komsar/desktop/README.md`](komsar/desktop/README.md)). Bila muncul Windows
+   SmartScreen, pilih **More info → Run anyway** (exe belum ditandatangani).
 2. Colokkan dongle flashdisk yang sudah didaftarkan admin, lalu buka `KomSaR.exe`.
 3. **Login pertama:** masuk dengan password sementara dari admin, ganti password (minimal 8 karakter),
    lalu rekam tiga kalimat acak untuk mendaftarkan suara. Harus selesai dalam 24 jam sejak akun dibuat.
