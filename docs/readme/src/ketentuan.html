@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><title>Ketentuan tugas</title>
+<link rel="stylesheet" href="base.css">
+<style>
+.board{margin-top:26px}
+.row{display:grid;grid-template-columns:330px 1fr 300px;gap:28px;padding:18px 28px;border-top:1px solid var(--garis);align-items:start}
+.row:first-child{border-top:0}
+.head{padding-top:14px;padding-bottom:12px;color:var(--redup);font-size:17px;font-weight:700;border-bottom:1px solid var(--tinta)}
+.row h3{font-size:21px}
+.algo{display:flex;flex-wrap:wrap;gap:6px}
+.algo span{border:1px solid var(--tinta);border-radius:4px;padding:0 9px;font-size:17px;font-weight:700}
+</style></head>
+<body><div class="page">
+  <h1>Ketentuan tugas dan implementasinya</h1>
+  <p class="lead">Tujuh ketentuan tugas akhir Kriptografi, dipetakan ke fitur KomSaR dan algoritma yang dipakai.</p>
+  <div class="sheet board">
+    <div class="row head"><div>Ketentuan</div><div>Implementasi di KomSaR</div><div>Algoritma</div></div>
+    <div class="row"><h3>Login dengan biometrik dan dongle</h3>
+      <p>Flashdisk terdaftar berisi file <code>KOMSAR.DONGLE</code>, lalu verifikasi suara dengan kalimat acak.</p>
+      <div class="algo"><span>SHA-256 token</span><span>SpeechBrain ECAPA</span></div></div>
+    <div class="row"><h3>Login memakai algoritma kriptografi</h3>
+      <p>Password disimpan sebagai hash; profil suara disimpan terenkripsi.</p>
+      <div class="algo"><span>Argon2id</span><span>AES-256-GCM</span></div></div>
+    <div class="row"><h3>Teks: super enkripsi klasik dan modern</h3>
+      <p>Vigenère tingkat byte, lalu hasilnya dienkripsi AES. Kunci tiap lapis diturunkan dari CEK acak.</p>
+      <div class="algo"><span>Vigenère</span><span>AES-256-GCM</span><span>HKDF</span></div></div>
+    <div class="row"><h3>File memakai algoritma berbeda dari teks</h3>
+      <p>File dan gambar dienkripsi per potongan 64 KB; tidak ada plaintext parsial bila satu potongan rusak.</p>
+      <div class="algo"><span>ChaCha20-Poly1305</span></div></div>
+    <div class="row"><h3>Pesan penting dienkripsi di basis data</h3>
+      <p>Lapisan tambahan dengan kunci turunan master key yang hanya ada di server.</p>
+      <div class="algo"><span>AES-256-GCM</span><span>HKDF</span></div></div>
+    <div class="row"><h3>Gambar dengan steganografi</h3>
+      <p>Kunci rahasia disisipkan ke gambar PNG; posisi bit diacak dari User ID penerima.</p>
+      <div class="algo"><span>LSB</span><span>ChaCha20 keystream</span></div></div>
+    <div class="row"><h3>Aset penting dengan blockchain sederhana</h3>
+      <p>Satu blok per aset berisi hash ciphertext; rantai diperiksa sebelum aset dibuka.</p>
+      <div class="algo"><span>SHA-256 hash chaining</span><span>AES-256-GCM</span></div></div>
+  </div>
+</div></body></html>

@@ -18,6 +18,9 @@ Aplikasi desktop (desktop/, pywebview, Windows)      Server Flask (InstaCloud, D
 - Login hanya lewat aplikasi desktop; browser biasa tidak bisa membaca dongle.
 
 Dokumen terkait:
+- [`../README.md`](../README.md): ringkasan proyek, tangkapan layar, dan pemetaan ketentuan tugas.
+- [`docs/teknis.md`](docs/teknis.md): algoritma, alur kriptografi detail, struktur kode, pengujian.
+- [`docs/alur-fitur.md`](docs/alur-fitur.md): alur fitur untuk pengguna dan admin.
 - [`docs/deploy.md`](docs/deploy.md): deploy ke InstaCloud + Neon, secret, bootstrap admin produksi.
 - [`desktop/README.md`](desktop/README.md): instalasi, build, dan kontrak klien desktop.
 - [`docs/uji-manual.md`](docs/uji-manual.md): checklist uji manual dengan perangkat nyata.
