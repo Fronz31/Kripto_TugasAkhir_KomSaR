@@ -1,10 +1,11 @@
 """Bagian bersama embedding/extraction LSB.
 
 Tata letak gambar (RGB, slot = satu byte warna, bit disimpan di LSB):
-  [0 .. HDR_BITS)   : header polos berurutan  MAGIC(4) | versi(1) | salt(16)
+  [0 .. HDR_BITS)   : salt acak 16 byte, berurutan (tanpa penanda/MAGIC: tak bisa
+                      dibedakan dari derau LSB alami)
   sisanya           : panjang(2) + blob terenkripsi, tersebar di posisi acak
                       yang diturunkan dari ID penerima + salt (ChaCha20 keystream)
-ID salah -> posisi salah -> tag AES-GCM gagal -> InvalidIDError.
+ID salah / bukan gambar KomSaR -> posisi salah -> tag AES-GCM gagal -> InvalidIDError.
 """
 import io
 
@@ -14,11 +15,8 @@ from PIL import Image
 
 from ..errors import StegoError
 
-MAGIC = b"KSST"
-VERSION = 1
 SALT_SIZE = 16
-HEADER_BYTES = len(MAGIC) + 1 + SALT_SIZE
-HDR_BITS = HEADER_BYTES * 8
+HDR_BITS = SALT_SIZE * 8
 LEN_BITS = 16
 
 

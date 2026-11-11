@@ -14,10 +14,7 @@ def extract_key(stego_image, recipient_id: str) -> bytes:
     if flat.size <= c.HDR_BITS:
         raise StegoError("Gambar terlalu kecil.")
 
-    header = c.bits_to_bytes(flat[:c.HDR_BITS] & 1)
-    if header[:4] != c.MAGIC or header[4] != c.VERSION:
-        raise StegoError("Gambar ini bukan gambar steganografi KomSaR (atau sudah rusak/terkompresi).")
-    salt = header[5:]
+    salt = c.bits_to_bytes(flat[:c.HDR_BITS] & 1)
 
     master = derive_id_master(recipient_id, salt)
     stream = c.position_stream(hkdf(master, b"stego:pos"), flat.size, c.HDR_BITS)
@@ -32,6 +29,6 @@ def extract_key(stego_image, recipient_id: str) -> bytes:
         raise InvalidIDError("ID tidak sesuai atau gambar steganografi rusak.")
     blob = c.bits_to_bytes(read_bits(length * 8))
     try:
-        return aes_gcm.decrypt(hkdf(master, b"stego:enc"), blob, aad=header)
+        return aes_gcm.decrypt(hkdf(master, b"stego:enc"), blob, aad=salt)
     except DecryptionError as exc:
         raise InvalidIDError("ID tidak sesuai atau gambar steganografi rusak.") from exc

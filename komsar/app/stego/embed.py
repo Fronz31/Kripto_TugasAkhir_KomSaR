@@ -20,16 +20,15 @@ def embed_key(cover, recipient_id: str, secret) -> bytes:
 
     flat, hw = c.load_rgb_array(cover)
     salt = os.urandom(c.SALT_SIZE)
-    header = c.MAGIC + bytes([c.VERSION]) + salt
     master = derive_id_master(recipient_id, salt)
-    blob = aes_gcm.encrypt(hkdf(master, b"stego:enc"), secret_b, aad=header)
+    blob = aes_gcm.encrypt(hkdf(master, b"stego:enc"), secret_b, aad=salt)
     body = len(blob).to_bytes(2, "big") + blob
     body_bits = c.bytes_to_bits(body)
 
     if len(body_bits) > c.max_body_bits(flat.size):
         raise StegoCapacityError("Gambar cover terlalu kecil untuk menyimpan kunci.")
 
-    hdr_bits = c.bytes_to_bits(header)
+    hdr_bits = c.bytes_to_bits(salt)
     flat[:c.HDR_BITS] = (flat[:c.HDR_BITS] & 0xFE) | hdr_bits
 
     pos = np.fromiter(
