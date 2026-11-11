@@ -128,6 +128,9 @@ def test_other_user_cannot_open_or_download(web):
     assert andi.get(f"/delivery/{did}/cipher").status_code == 404
     st = budi.get(f"/delivery/{did}/stego")
     assert st.status_code == 200 and st.data[:8] == b"\x89PNG\r\n\x1a\n"
+    cd = st.headers["Content-Disposition"]
+    assert re.search(r'filename="?IMG_\d{8}_\d{6}\.png', cd), cd                     # nama seperti foto kamera
+    assert "stego" not in cd.lower() and "komsar" not in cd.lower()
 
 
 def test_xss_escaped(web):

@@ -47,7 +47,9 @@ KomSaR adalah prototipe tugas akhir. Daftar ini mencatat batas yang diketahui pa
     ditambah Argon2id per percobaan, sehingga brute force atas satu gambar stego tidak praktis. Namun ID
     disimpan apa adanya di database dan diketahui admin, sehingga pihak yang membaca database atau mendapat ID
     yang bocor dan memegang gambar stego bisa mengekstrak kunci rahasia. Regenerate ID membuat pesan lama
-    tidak bisa dibuka lagi.
+    tidak bisa dibuka lagi. Gambar stego tidak membawa penanda tetap (hanya salt acak di LSB awal, cover foto
+    alami, nama file seperti foto kamera), tetapi steganalisis statistik LSB tetap bisa mencurigai adanya
+    sisipan data; yang menjaga kerahasiaan adalah enkripsi, bukan ketersembunyian.
 12. **Master key database ada di secret server.** `KOMSAR_DB_MASTER_KEY` (lapisan pesan penting dan profil suara)
     disimpan sebagai secret InstaCloud. Siapa pun yang menguasai server/secret dapat membuka lapisan itu. Bila
     kunci hilang, data terenkripsi dengan kunci itu tidak bisa dipulihkan.

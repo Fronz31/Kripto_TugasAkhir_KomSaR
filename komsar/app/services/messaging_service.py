@@ -168,7 +168,7 @@ class MessagingService:
             "is_important": m.important, "encrypted": True,
             "sender": {"username": sender.username, "full_name": sender.full_name, "unit": sender.unit},
             "created_at": m.created_at.isoformat(), "status": d.status,
-            "attachments": [{"type": "stego_image", "name": f"{d.id}.png"}],
+            "attachments": [{"type": "stego_image", "name": d.photo_name}],
         }
         if m.file_id:
             f = self.repo.get_file(m.file_id)

@@ -88,7 +88,7 @@ def _own_delivery(delivery_id):
 def stego(delivery_id):
     d = _own_delivery(delivery_id)
     return send_file(io.BytesIO(d.stego_png or b""), mimetype="image/png", as_attachment=request.args.get("inline") != "1",
-                     download_name=f"stego_{delivery_id[:8]}.png")
+                     download_name=d.photo_name)
 
 
 @bp.route("/delivery/<delivery_id>/cipher")

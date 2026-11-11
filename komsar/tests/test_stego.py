@@ -42,8 +42,14 @@ def test_jpeg_recompression_breaks_key(cover_path):
 
 
 def test_non_stego_image_rejected(cover_path):
-    with pytest.raises(StegoError):
+    with pytest.raises(InvalidIDError):        # tanpa penanda: gambar biasa gagal di tag AES-GCM
         extract_key(cover_path.read_bytes(), "B001")
+
+
+def test_every_cover_fits_max_payload(cover_path):
+    secret = b"k" * 1024
+    for cover in sorted(cover_path.parent.glob("*.png")):
+        assert extract_key(embed_key(cover, "B001", secret), "B001") == secret
 
 
 def test_capacity_error():
@@ -54,3 +60,25 @@ def test_capacity_error():
 
 def test_two_embeds_differ(cover_path):
     assert embed_key(cover_path, "B001", "K123") != embed_key(cover_path, "B001", "K123")
+
+
+def _lsb_bytes(png: bytes) -> bytes:
+    import numpy as np
+    flat = np.array(Image.open(io.BytesIO(png)).convert("RGB"), dtype=np.uint8).reshape(-1)
+    return np.packbits(flat & 1).tobytes()
+
+
+def test_no_plaintext_signature_in_lsb(cover_path):
+    for _ in range(3):
+        assert b"KSST" not in _lsb_bytes(embed_key(cover_path, "B001", "K123"))
+
+
+def test_first_32_lsbs_not_constant(cover_path):
+    heads = {_lsb_bytes(embed_key(cover_path, "B001", "K123"))[:4] for _ in range(4)}
+    assert len(heads) > 1                      # salt acak, bukan penanda tetap
+
+
+def test_cover_is_natural_photo_from_folder(cover_path):
+    from app.config import Config
+    assert cover_path.parent == Config.COVER_IMAGES_DIR and cover_path.name.startswith("IMG_")
+    assert max(Image.open(cover_path).size) == 1024

@@ -19,8 +19,8 @@
   {% else %}<div class="lock">Terenkripsi{% if i.file %}: {{ i.file.name }} ({{ (i.file.size / 1024)|round(1) }} KB){% endif %}</div>{% endif %}
   <div class="links">Lampiran:
     <a href="{{ url_for('decrypt.cipher', delivery_id=i.delivery_id) }}">ciphertext</a>
-    <a href="{{ url_for('decrypt.stego', delivery_id=i.delivery_id) }}">gambar steganografi</a></div></div>
-  <div class="side-col"><img class="thumb" alt="Gambar steganografi" src="{{ url_for('decrypt.stego', delivery_id=i.delivery_id, inline=1) }}">
+    <a href="{{ url_for('decrypt.stego', delivery_id=i.delivery_id) }}">gambar lampiran</a></div></div>
+  <div class="side-col"><img class="thumb" alt="Gambar lampiran" src="{{ url_for('decrypt.stego', delivery_id=i.delivery_id, inline=1) }}">
     {% if i.status != 'decrypted' or (i.text is none and not i.file) %}<a class="btn sm" href="{{ url_for('decrypt.center', d=i.delivery_id) }}">Dekripsi</a>{% endif %}</div></div>
 {% else %}<p class="empty">Belum ada pesan masuk.</p>{% endfor %}</div></div>
 <div class="card"><h2>Terkirim</h2>{{ sent_table(sent) }}</div>
