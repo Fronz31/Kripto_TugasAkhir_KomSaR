@@ -69,6 +69,11 @@ class DeliveryRecord(db.Model):
 
     message = db.relationship("MessageRecord", back_populates="deliveries")
 
+    @property
+    def photo_name(self) -> str:
+        """Nama unduhan gambar stego yang terlihat seperti foto kamera biasa."""
+        return f"IMG_{self.created_at:%Y%m%d_%H%M%S}.png"
+
 
 class FileRecord(db.Model):
     __tablename__ = "files"
