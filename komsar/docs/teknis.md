@@ -100,10 +100,14 @@ dibersihkan dari path traversal. Khusus **aset penting**, sistem otomatis membua
 
 ### 3. Steganografi (`app/stego/`)
 Tata letak data di gambar:
-- Header polos di awal: `MAGIC "KSST"` (4 byte) + versi (1) + salt (16).
-- Sisanya: panjang (2 byte) + kunci rahasia terenkripsi AES-GCM, **tersebar di posisi acak**.
+- 128 LSB pertama berisi **salt acak 16 byte** saja. Tidak ada penanda (MAGIC) atau nomor versi, sehingga
+  bit-bit ini tidak bisa dibedakan dari derau LSB foto biasa.
+- Sisanya: panjang (2 byte) + kunci rahasia terenkripsi AES-GCM (salt sebagai AAD), **tersebar di posisi acak**.
 - Posisi acak diturunkan dari **User ID + salt** lewat keystream ChaCha20.
-- Bila User ID salah, posisi yang dibaca salah, tag AES-GCM gagal, dan sistem menolak dengan `InvalidIDError`.
+- Bila User ID salah, atau gambar itu bukan gambar KomSaR, posisi yang dibaca salah, tag AES-GCM gagal, dan
+  sistem menolak dengan `InvalidIDError`.
+- Cover dipilih acak dari foto alami di `assets/covers/` (CC0/public domain, lihat `SUMBER.md`), dan file
+  unduhannya dinamai seperti foto kamera (`IMG_YYYYMMDD_HHMMSS.png`).
 - Gambar disimpan sebagai **PNG** (lossless). Format yang dikompresi (JPEG) akan merusak bit LSB.
 - Pemakaian kapasitas dibatasi ¼ dari slot tersisa agar pencarian posisi tetap efisien.
 
