@@ -38,6 +38,29 @@ def test_bridge_wraps_errors(monkeypatch):
     assert bridge_at(SERVER).write_dongle("C:\\", "a", "b") == {"error": "Drive bukan flashdisk removable"}
 
 
+def test_bridge_hold_to_record():
+    class FakeRecorder:
+        started = 0
+
+        def start(self):
+            self.started += 1
+
+        def stop(self):
+            if not self.started:
+                raise RuntimeError("Rekaman belum dimulai.")
+            return b"RIFFwav"
+
+    b = bridge_at(SERVER + "/login/voice")
+    b._recorder = FakeRecorder()
+    assert b.stop_recording() == {"error": "Rekaman belum dimulai."}
+    assert b.start_recording() is True
+    assert b.stop_recording() == "UklGRndhdg=="
+    evil = bridge_at("https://evil.example/")
+    evil._recorder = b._recorder
+    assert evil.start_recording() == {"error": "Halaman bukan dari server KomSaR"}
+    assert b._recorder.started == 1
+
+
 class FakeResp(io.BytesIO):
     def __enter__(self):
         return self
