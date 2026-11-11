@@ -79,3 +79,38 @@ def test_check_dongle_network_error_raises(monkeypatch, error):
     monkeypatch.setattr(main.urllib.request, "urlopen", fake_urlopen(error))
     with pytest.raises(OSError):
         main.check_dongle(SERVER, {"dongle_id": "d", "token": "t", "volume_serial": "S"})
+
+
+
+def config_urlopen(result):
+    def urlopen(url, timeout):
+        assert url == SERVER + "/api/client-config"
+        if isinstance(result, Exception):
+            raise result
+        return FakeResp(result)
+
+    return urlopen
+
+
+@pytest.mark.parametrize(
+    "result,required",
+    [
+        (b'{"require_dongle": false}', False),
+        (b'{"require_dongle": true}', True),
+        (b"<html>", True),                                         # balasan aneh: fail closed
+        (urllib.error.HTTPError(SERVER, 404, "Not Found", {}, io.BytesIO(b"")), True),   # server lama
+    ],
+)
+def test_server_requires_dongle(monkeypatch, result, required):
+    monkeypatch.setattr(main.urllib.request, "urlopen", config_urlopen(result))
+    assert main.server_requires_dongle(SERVER) is required
+
+
+@pytest.mark.parametrize(
+    "error",
+    [urllib.error.URLError("down"), urllib.error.HTTPError(SERVER, 503, "Unavailable", {}, io.BytesIO(b""))],
+)
+def test_server_requires_dongle_unreachable_raises(monkeypatch, error):
+    monkeypatch.setattr(main.urllib.request, "urlopen", config_urlopen(error))
+    with pytest.raises(OSError):
+        main.server_requires_dongle(SERVER)

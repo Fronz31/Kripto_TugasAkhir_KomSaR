@@ -49,6 +49,19 @@ def origin(url):
     return (parts.scheme.lower(), parts.netloc.lower())
 
 
+def server_requires_dongle(server_url):
+    """Tanya server apakah dongle wajib. Raise OSError bila server tidak terjangkau."""
+    try:
+        with urllib.request.urlopen(server_url + "/api/client-config", timeout=30) as resp:
+            return bool(json.loads(resp.read()).get("require_dongle", True))
+    except (ValueError, AttributeError):
+        return True  # balasan aneh: anggap wajib (fail closed)
+    except urllib.error.HTTPError as e:
+        if e.code >= 500:
+            raise
+        return True  # server lama tanpa endpoint ini: dongle wajib
+
+
 def check_dongle(server_url, found):
     """True bila server menerima dongle. Raise OSError bila server tidak terjangkau."""
     req = urllib.request.Request(
@@ -111,8 +124,15 @@ def gate(window, server_url):
     """Tahan di halaman lokal sampai dongle terdaftar terdeteksi, lalu buka server."""
     shown = None
     while True:
-        found = dongle.read_dongle()
-        if found is None:
+        try:
+            required = server_requires_dongle(server_url)
+        except OSError:
+            required = None  # server tidur/bangun atau offline
+        if required is False:
+            break
+        if required is None:
+            msg = "Server tidak dapat dihubungi"
+        elif (found := dongle.read_dongle()) is None:
             msg = "Colokkan dongle KomSaR"
         else:
             try:
