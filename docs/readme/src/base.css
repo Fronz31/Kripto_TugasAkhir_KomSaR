@@ -1,0 +1,20 @@
+/* Gaya bersama visual README, mengikuti tampilan aplikasi "Meja Sandi". */
+@font-face{font-family:"Archivo";src:url(../../../komsar/app/static/fonts/archivo-latin-wdth-normal.woff2) format("woff2");font-weight:100 900;font-stretch:62% 125%}
+@font-face{font-family:"Atkinson Hyperlegible";src:url(../../../komsar/app/static/fonts/atkinson-hyperlegible-latin-400-normal.woff2) format("woff2");font-weight:400}
+@font-face{font-family:"Atkinson Hyperlegible";src:url(../../../komsar/app/static/fonts/atkinson-hyperlegible-latin-700-normal.woff2) format("woff2");font-weight:700}
+:root{--kertas:#E9EDF0;--lembar:#FFFFFF;--tinta:#0C1A33;--garis:#C5CDD6;--segel:#F5A623;--redup:#4D5A6B;
+  --head:"Archivo",sans-serif;--body:"Atkinson Hyperlegible",sans-serif}
+*{box-sizing:border-box}
+html,body{margin:0;width:1280px;background:var(--kertas);color:var(--tinta);font:19px/1.45 var(--body)}
+.page{padding:48px 56px 52px}
+h1,h2,h3{font-family:var(--head);font-stretch:87.5%;margin:0;line-height:1.15}
+h1{font-size:34px;font-weight:700;letter-spacing:-.01em}
+h2{font-size:23px;font-weight:650}
+h3{font-size:21px;font-weight:650}
+p{margin:0}
+.lead{color:var(--redup);margin-top:8px;max-width:80ch}
+.sheet{background:var(--lembar);border:1px solid var(--garis);border-top:3px solid var(--tinta);border-radius:4px}
+.muted{color:var(--redup)}
+code,.mono{font-family:"Cascadia Mono",Consolas,monospace;font-size:.9em}
+.seal{background:var(--segel);color:var(--tinta);border-radius:999px;padding:1px 12px;font-weight:700;font-size:16px;white-space:nowrap}
+.tag{border:1px solid var(--garis);border-radius:999px;padding:1px 12px;font-weight:700;font-size:16px;white-space:nowrap}

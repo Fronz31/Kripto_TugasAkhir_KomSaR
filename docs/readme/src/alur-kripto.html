@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><title>Alur kriptografi</title>
+<link rel="stylesheet" href="base.css">
+<style>
+.grid{margin-top:28px;display:grid;grid-template-columns:1fr 250px 1fr;gap:26px;align-items:start}
+.lane{padding:20px 24px 10px}
+.lane h2{padding-bottom:12px;border-bottom:1px solid var(--tinta)}
+ol{list-style:none;margin:0;padding:0;counter-reset:s}
+.lane.recv ol{counter-reset:s 5}
+li{counter-increment:s;display:grid;grid-template-columns:40px 1fr;gap:4px 12px;padding:14px 0;border-top:1px solid var(--garis)}
+li:first-child{border-top:0}
+li::before{content:counter(s);grid-row:span 2;width:32px;height:32px;border:2px solid var(--tinta);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-family:var(--head);font-weight:700;font-size:18px}
+li b{font-family:var(--head);font-stretch:87.5%;font-size:21px;font-weight:650}
+li span{color:var(--redup);font-size:18px}
+li.key::before{background:var(--segel);border-color:var(--segel)}
+.mid{margin-top:150px}
+.store{padding:18px 18px 20px;text-align:left}
+.store h3{font-size:20px}
+.store ul{margin:10px 0 0;padding:0;list-style:none;font-size:17px}
+.store li{display:block;counter-increment:none;padding:6px 0;border-top:1px solid var(--garis)}
+.store li::before{content:none}
+.flow{display:flex;justify-content:center;margin:14px 0}
+.foot{margin-top:22px;font-size:18px}
+</style></head>
+<body><div class="page">
+  <h1>Alur kriptografi pesan</h1>
+  <p class="lead">Isi dienkripsi sekali. Kunci pembukanya dibungkus dan disembunyikan terpisah untuk setiap penerima.</p>
+  <div class="grid">
+    <div class="sheet lane">
+      <h2>Pengirim</h2>
+      <ol>
+        <li><b>Tulis pesan dan kunci rahasia</b><span>Pilih satu atau beberapa penerima dengan username.</span></li>
+        <li><b>Buat CEK acak 32 byte</b><span>HKDF menurunkan subkey terpisah untuk tiap lapis.</span></li>
+        <li><b>Vigenère, lalu AES-256-GCM</b><span>Pesan penting dibungkus satu lapis AES&#8209;256&#8209;GCM lagi dengan kunci turunan master key.</span></li>
+        <li><b>Bungkus CEK per penerima</b><span>Kunci pembungkus = Argon2id(kunci rahasia, User ID penerima, salt) + HKDF.</span></li>
+        <li class="key"><b>Sembunyikan kunci rahasia di PNG</b><span>LSB; posisi bit diacak keystream ChaCha20 dari User ID penerima.</span></li>
+      </ol>
+    </div>
+    <div class="mid">
+      <div class="flow"><svg width="250" height="30" viewBox="0 0 250 30" aria-hidden="true"><path d="M4 15h232M226 6l10 9-10 9" fill="none" stroke="#0C1A33" stroke-width="2.5"/></svg></div>
+      <div class="sheet store">
+        <h3>Basis data</h3>
+        <ul>
+          <li>Ciphertext (sekali)</li>
+          <li>CEK terbungkus, satu per penerima</li>
+          <li>Gambar stego, satu per penerima</li>
+        </ul>
+      </div>
+      <div class="flow"><svg width="250" height="30" viewBox="0 0 250 30" aria-hidden="true"><path d="M4 15h232M226 6l10 9-10 9" fill="none" stroke="#0C1A33" stroke-width="2.5"/></svg></div>
+      <p class="muted" style="font-size:17px">Tanpa User ID dan kunci yang benar, AES-GCM menolak; tidak ada hasil setengah jadi.</p>
+    </div>
+    <div class="sheet lane recv">
+      <h2>Penerima</h2>
+      <ol>
+        <li><b>Pilih pesan, masukkan User ID</b><span>Gambar steganografi pesan itu ditampilkan.</span></li>
+        <li class="key"><b>Kunci diekstrak dari gambar</b><span>User ID salah membaca posisi bit yang salah, lalu ditolak.</span></li>
+        <li><b>Ketik ulang kunci rahasia</b><span>Lima kali salah: ulangi dari langkah 6.</span></li>
+        <li><b>Buka CEK</b><span>Argon2id(kunci, User ID, salt) membuka CEK yang dibungkus.</span></li>
+        <li><b>Dekripsi isi</b><span>AES-256-GCM, lalu Vigenère dibalik. Hasil hanya disimpan di memori server.</span></li>
+      </ol>
+    </div>
+  </div>
+</div></body></html>

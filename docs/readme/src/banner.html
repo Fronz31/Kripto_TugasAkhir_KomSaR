@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><title>KomSaR banner</title>
+<link rel="stylesheet" href="base.css">
+<style>
+.wrap{display:grid;grid-template-columns:440px 1fr;height:480px}
+.rail{background:var(--tinta);color:#fff;padding:56px 48px;display:flex;flex-direction:column;justify-content:center}
+.rail img{width:132px;height:132px}
+.word{font-family:var(--head);font-stretch:87.5%;font-weight:700;font-size:84px;line-height:1;margin-top:22px;letter-spacing:-.01em}
+.word span{color:var(--segel)}
+.rail p{color:#A9B6C8;font-size:21px;margin-top:10px}
+.desk{padding:40px 56px 40px;display:flex;flex-direction:column;justify-content:center}
+.desk h1{font-size:36px;max-width:28ch}
+.desk .lead{font-size:20px;max-width:52ch}
+.facts{margin-top:28px;display:grid;grid-template-columns:1fr 1fr;padding:0}
+.facts div{padding:16px 22px;border-top:1px solid var(--garis)}
+.facts div:nth-child(odd){border-right:1px solid var(--garis)}
+.facts div:nth-child(-n+2){border-top:0}
+.facts b{display:block;font-family:var(--head);font-stretch:87.5%;font-size:21px}
+.facts span{color:var(--redup);font-size:18px}
+</style></head>
+<body><div class="wrap">
+  <div class="rail">
+    <img src="../../../komsar/app/static/brand/logo-white.svg" alt="">
+    <div class="word">Kom<span>SaR</span></div>
+    <p>Komunikasi Satuan Rakyat</p>
+  </div>
+  <div class="desk">
+    <h1>Pesan terenkripsi untuk komunikasi antarsatuan sipil</h1>
+    <p class="lead">Server Flask dan aplikasi desktop Windows. Tugas akhir mata kuliah Kriptografi.</p>
+    <div class="sheet facts">
+      <div><b>Login tiga faktor</b><span>password, dongle flashdisk, suara</span></div>
+      <div><b>Super enkripsi teks</b><span>Vigenère lalu AES-256-GCM</span></div>
+      <div><b>Kunci di dalam gambar</b><span>steganografi LSB pada PNG</span></div>
+      <div><b>Aset penting tercatat</b><span>blockchain hash berantai SHA-256</span></div>
+    </div>
+  </div>
+</div></body></html>

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><title>Alur login</title>
+<link rel="stylesheet" href="base.css">
+<style>
+.flow{margin-top:28px;display:grid;grid-template-columns:238px 44px 262px 44px 1fr 44px 132px;align-items:center}
+.step{padding:18px 20px 20px}
+.n{display:block;color:var(--redup);font-size:16px;font-weight:700;margin-bottom:4px}
+.step h2{font-size:22px}
+.step p{margin-top:8px;font-size:18px}
+.step p.muted{font-size:17px}
+.branch{display:grid;gap:18px}
+.arrow svg{display:block;margin:auto}
+.split{position:relative;height:100%}
+.done{text-align:center}
+.done .disk{width:84px;height:84px;margin:0 auto 10px;border-radius:50%;background:var(--segel);display:flex;align-items:center;justify-content:center}
+.done b{font-family:var(--head);font-stretch:87.5%;font-size:22px}
+.rule{margin-top:26px;padding:14px 20px;font-size:18px;border-top:1px solid var(--tinta)}
+</style></head>
+<body><div class="page">
+  <h1>Alur login tiga faktor</h1>
+  <p class="lead">Login hanya dari aplikasi desktop. Setiap faktor diperiksa di server; sesi baru dibuat setelah faktor terakhir lolos.</p>
+  <div class="flow">
+    <div class="sheet step"><span class="n">Faktor 1</span><h2>Dongle</h2>
+      <p>Colokkan flashdisk. Aplikasi membaca <code>KOMSAR.DONGLE</code> dan server mencocokkan SHA-256 token serta serial volume.</p></div>
+    <div class="arrow"><svg width="44" height="20" viewBox="0 0 44 20" aria-hidden="true"><path d="M4 10h32M29 3l8 7-8 7" fill="none" stroke="#0C1A33" stroke-width="2.5"/></svg></div>
+    <div class="sheet step"><span class="n">Faktor 2</span><h2>Username dan password</h2>
+      <p>Dicek terhadap hash Argon2id bersama bukti dongle.</p>
+      <p class="muted">Lolos: sesi sementara, berlaku 3 menit.</p></div>
+    <div class="arrow"><svg width="44" height="220" viewBox="0 0 44 220" aria-hidden="true"><path d="M2 110h12M14 110V10h22M14 110v100h22M29 3l8 7-8 7M29 203l8 7-8 7" fill="none" stroke="#0C1A33" stroke-width="2.5"/></svg></div>
+    <div class="branch">
+      <div class="sheet step"><span class="n">Faktor 3, login berikutnya</span><h2>Verifikasi suara</h2>
+        <p>Tahan tombol dan ucapkan kalimat acak empat kata. Lolos bila skor cosine mencapai ambang.</p></div>
+      <div class="sheet step"><span class="n">Faktor 3, login pertama</span><h2>Ganti password, daftar suara</h2>
+        <p>Ganti password sementara dari admin, lalu rekam tiga kalimat acak. Profil suara disimpan terenkripsi AES-256-GCM.</p></div>
+    </div>
+    <div class="arrow"><svg width="44" height="220" viewBox="0 0 44 220" aria-hidden="true"><path d="M8 10h14V210H8M22 110h14M29 103l8 7-8 7" fill="none" stroke="#0C1A33" stroke-width="2.5"/></svg></div>
+    <div class="done"><div class="disk"><svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><path d="M8 21l8 8 16-17" fill="none" stroke="#0C1A33" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><b>Beranda</b><p class="muted" style="font-size:17px">Sesi penuh, maks. 8 jam</p></div>
+  </div>
+  <p class="rule">Lima kali password salah, atau tiga kali suara salah, mengunci akun selama 15 menit. Pesan galat password dan dongle selalu sama, sehingga tidak membocorkan faktor mana yang gagal.</p>
+</div></body></html>

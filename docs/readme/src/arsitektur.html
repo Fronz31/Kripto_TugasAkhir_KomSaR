@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><title>Arsitektur</title>
+<link rel="stylesheet" href="base.css">
+<style>
+.lanes{margin-top:30px;display:grid;grid-template-columns:1fr 92px 1fr 92px 1fr;align-items:stretch}
+.node{padding:22px 24px 24px}
+.node h2{font-size:24px}
+.where{color:var(--redup);font-size:17px;margin-top:2px}
+.node ul{margin:16px 0 0;padding:0;list-style:none}
+.node li{padding:7px 0;border-top:1px solid var(--garis);font-size:18px}
+.node li:first-child{border-top:0}
+.node .keep{margin-top:16px;padding:10px 12px;background:var(--kertas);border-radius:4px;font-size:17px}
+.node .keep b{display:block;font-size:16px}
+.secret{border-left:4px solid var(--segel)}
+.wire{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-weight:700;font-size:16px;text-align:center}
+.wire svg{width:92px;height:20px}
+.note{margin-top:22px;font-size:18px}
+</style></head>
+<body><div class="page">
+  <h1>Arsitektur</h1>
+  <p class="lead">Aplikasi desktop hanya membaca perangkat dan menampilkan halaman. Semua kriptografi berjalan di server; database hanya menerima ciphertext.</p>
+  <div class="lanes">
+    <div class="sheet node">
+      <h2>KomSaR.exe</h2><p class="where">Laptop satuan, Windows</p>
+      <ul>
+        <li>Membaca dongle <code>KOMSAR.DONGLE</code> di flashdisk</li>
+        <li>Merekam suara dari mikrofon (WAV 16 kHz)</li>
+        <li>Membuka halaman server di jendela pywebview</li>
+      </ul>
+      <div class="keep"><b>Disimpan di sini</b>Alamat server saja. Tidak ada kunci, tidak ada pesan.</div>
+    </div>
+    <div class="wire"><svg viewBox="0 0 92 20" aria-hidden="true"><path d="M2 10h82M76 3l8 7-8 7" fill="none" stroke="#0C1A33" stroke-width="2.5"/></svg>HTTPS</div>
+    <div class="sheet node">
+      <h2>Server Flask</h2><p class="where">InstaCloud, Docker, gunicorn</p>
+      <ul>
+        <li>Enkripsi, steganografi, blockchain</li>
+        <li>Verifikasi password, dongle, dan suara (SpeechBrain ECAPA)</li>
+        <li>Sesi, CSRF, lockout, audit log</li>
+      </ul>
+      <div class="keep secret"><b>Disimpan di sini</b>Secret <code>KOMSAR_SECRET_KEY</code> dan <code>KOMSAR_DB_MASTER_KEY</code>.</div>
+    </div>
+    <div class="wire"><svg viewBox="0 0 92 20" aria-hidden="true"><path d="M2 10h82M76 3l8 7-8 7" fill="none" stroke="#0C1A33" stroke-width="2.5"/></svg>TLS</div>
+    <div class="sheet node">
+      <h2>PostgreSQL</h2><p class="where">Neon</p>
+      <ul>
+        <li>Pengguna dan hash Argon2id</li>
+        <li>Ciphertext pesan, file, dan aset</li>
+        <li>Gambar steganografi PNG</li>
+        <li>Blok blockchain, dongle, profil suara terenkripsi</li>
+      </ul>
+      <div class="keep"><b>Tidak disimpan di sini</b>Plaintext pesan dan file, rekaman suara.</div>
+    </div>
+  </div>
+</div></body></html>
