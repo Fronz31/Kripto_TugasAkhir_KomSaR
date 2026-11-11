@@ -39,7 +39,9 @@ uv pip install --python komsar\desktop\.venv pyinstaller
 powershell -ExecutionPolicy Bypass -File komsar\desktop\build.ps1
 ```
 
-Hasil: `komsar\desktop\dist\KomSaR\KomSaR.exe`. Log aplikasi build ada di
+Hasil: satu file `komsar\desktop\dist\KomSaR.exe`. Bila `config.json` ada saat build, URL server ditanam
+di dalam exe sebagai default, jadi exe bisa dibagikan sendirian. `config.json` di samping exe (bila ada)
+tetap didahulukan. Log aplikasi build ada di
 `%APPDATA%\KomSaR\desktop.log`.
 
 ## Test
