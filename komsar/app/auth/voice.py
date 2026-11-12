@@ -16,6 +16,8 @@ from ..errors import ValidationError
 SAMPLE_RATE = 16000
 MIN_SECONDS, MAX_SECONDS = 2, 10
 MAX_WAV_BYTES = 1024 * 1024
+MIN_PEAK = 0.01        # puncak < 1% skala penuh = mikrofon mati/dibisukan, bukan suara
+SILENT = "Rekaman hening. Periksa mikrofon (tidak dibisukan, volume input cukup), lalu coba lagi."
 HUB_ID = "speechbrain/spkrec-ecapa-voxceleb"
 
 
@@ -35,7 +37,10 @@ def validate_wav(data: bytes) -> np.ndarray:
         raise ValidationError("Rekaman suara harus WAV PCM 16-bit, 16000 Hz, mono.")
     if not MIN_SECONDS <= frames / rate <= MAX_SECONDS:
         raise ValidationError(f"Durasi rekaman harus {MIN_SECONDS} sampai {MAX_SECONDS} detik.")
-    return np.frombuffer(raw, dtype="<i2").astype(np.float32) / 32768.0
+    samples = np.frombuffer(raw, dtype="<i2").astype(np.float32) / 32768.0
+    if np.abs(samples).max() < MIN_PEAK:
+        raise ValidationError(SILENT)      # ditolak sebelum dihitung sebagai percobaan gagal
+    return samples
 
 
 def cosine(a: np.ndarray, b: np.ndarray) -> float:
