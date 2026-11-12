@@ -64,8 +64,10 @@ Test tidak butuh mikrofon maupun flashdisk.
 
 Server harus membalas JSON `{"ok": true}` bila dongle terdaftar dan aktif. Balasan lain
 (`{"ok": false}`, status 4xx, atau bukan JSON) dianggap ditolak. Status 5xx atau gagal koneksi
-dianggap server tidak dapat dihubungi. Setelah server terbuka, klien memeriksa dongle setiap 1 detik; bila
-tidak terbaca 2 kali berturut-turut, klien logout lalu kembali ke halaman "Colokkan dongle KomSaR".
+dianggap server tidak dapat dihubungi. Klien tidak polling flashdisk: jendela tersembunyi (`devwatch.py`) menerima
+event Windows `WM_DEVICECHANGE` saat flashdisk dicolok atau dicabut, lalu dongle dibaca ulang (cadangan: cek tiap
+15 detik bila event terlewat). Bila dongle hilang (dikonfirmasi baca ulang 0,5 detik kemudian),
+klien logout lalu kembali ke halaman "Colokkan dongle KomSaR".
 Heartbeat dongle ke server tetap dikerjakan oleh JS halaman
 server, bukan oleh klien Python.
 
