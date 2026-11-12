@@ -64,7 +64,9 @@ Test tidak butuh mikrofon maupun flashdisk.
 
 Server harus membalas JSON `{"ok": true}` bila dongle terdaftar dan aktif. Balasan lain
 (`{"ok": false}`, status 4xx, atau bukan JSON) dianggap ditolak. Status 5xx atau gagal koneksi
-dianggap server tidak dapat dihubungi. Heartbeat dongle selama sesi dikerjakan oleh JS halaman
+dianggap server tidak dapat dihubungi. Setelah server terbuka, klien memeriksa dongle setiap 1 detik; bila
+tidak terbaca 2 kali berturut-turut, klien logout lalu kembali ke halaman "Colokkan dongle KomSaR".
+Heartbeat dongle ke server tetap dikerjakan oleh JS halaman
 server, bukan oleh klien Python.
 
 ### File dongle
