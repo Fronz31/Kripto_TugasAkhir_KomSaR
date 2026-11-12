@@ -1,4 +1,5 @@
 """Fase 6: login 3 faktor (password + dongle + suara), login pertama, lockout, CLI bootstrap-admin."""
+import os
 import json
 import re
 import time
@@ -265,7 +266,7 @@ def test_session_cookie_config():
 
 @pytest.fixture
 def drive(tmp_path, monkeypatch):
-    root = str(tmp_path) + "\\"
+    root = os.path.join(str(tmp_path), "")     # akhiran pemisah folder sesuai OS (Windows: \, Linux: /)
     monkeypatch.setattr(komsar_cli.desk, "list_removable_drives", lambda: [root])
     monkeypatch.setattr(komsar_cli.desk, "volume_serial", lambda d: SERIAL)
     return root
