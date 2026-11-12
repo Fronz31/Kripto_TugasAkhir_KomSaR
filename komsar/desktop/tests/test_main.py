@@ -153,3 +153,41 @@ def test_load_server_url_priority(monkeypatch, tmp_path):
 
     (side / "config.json").write_text('{"server_url": "https://side.example"}', encoding="utf-8")
     assert main.load_server_url() == "https://side.example"               # config di samping exe menang
+
+
+def test_wait_for_removal_needs_consecutive_misses():
+    reads = iter([{"d": 1}, None, {"d": 1}, None, None, {"d": 1}])
+    calls = []
+    main.wait_for_removal(read=lambda: next(reads), sleep=calls.append)
+    assert len(calls) == 5          # kedipan sesaat (None lalu terbaca lagi) tidak memicu logout
+
+
+def test_gate_returns_to_gate_page_when_dongle_removed(monkeypatch):
+    class Events:
+        def __init__(self):
+            self.loaded = self
+            self.handlers = []
+
+        def __iadd__(self, fn):
+            self.handlers.append(fn)
+            return self
+
+    class Win:
+        def __init__(self):
+            self.events, self.log = Events(), []
+
+        def load_url(self, url):
+            self.log.append(("url", url))
+
+        def load_html(self, html):
+            self.log.append(("html", html))
+
+        def evaluate_js(self, js):
+            self.log.append(("js", js))
+
+    required = iter([True, False])      # sesi 1 wajib dongle; sesudah dongle dicolok lagi, gerbang selesai
+    monkeypatch.setattr(main, "wait_for_dongle", lambda w, s: next(required))
+    monkeypatch.setattr(main, "wait_for_removal", lambda: None)
+    w = Win()
+    main.gate(w, SERVER)
+    assert w.log == [("url", SERVER), ("js", main.LOGOUT_JS), ("html", main.GATE_HTML), ("url", SERVER)]
