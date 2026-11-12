@@ -13,12 +13,14 @@ from urllib.parse import urlsplit
 import webview
 
 import audio
+import devwatch
 import dongle
 
 FROZEN = getattr(sys, "frozen", False)
 BASE_DIR = os.path.dirname(sys.executable if FROZEN else os.path.abspath(__file__))
-POLL_SECONDS = 2
-WATCH_SECONDS = 1   # cek dongle saat sesi berjalan; dilepas 2x berturut-turut = kembali ke gerbang
+POLL_SECONDS = 2        # ulangi kontak server yang gagal
+FALLBACK_SECONDS = 15   # jaring pengaman bila event perangkat terlewat (mis. file dongle dihapus)
+CONFIRM_SECONDS = 0.5   # baca ulang sekali sebelum memutus sesi (cegah salah baca sesaat)
 
 GATE_HTML = """<!doctype html>
 <html lang="id"><head><meta charset="utf-8"><title>KomSaR</title>
@@ -28,7 +30,7 @@ font-family:Segoe UI,sans-serif;background:#0f172a;color:#e2e8f0;text-align:cent
 h1{font-size:1.6rem;margin:0 0 .5rem}p{color:#94a3b8;margin:0}
 </style></head>
 <body><div><h1 id="msg">Colokkan dongle KomSaR</h1>
-<p>Aplikasi memeriksa flashdisk setiap 2 detik.</p></div>
+<p>Flashdisk terdeteksi otomatis saat dicolokkan.</p></div>
 <script>function setMsg(t){document.getElementById('msg').textContent=t}</script>
 </body></html>"""
 
@@ -138,15 +140,17 @@ class Bridge:
         return base64.b64encode(self._recorder.stop()).decode()
 
 
-def wait_for_removal(read=lambda: dongle.read_dongle(), sleep=time.sleep, misses=2):
-    """Blok sampai dongle tidak terbaca `misses` kali berturut-turut (cegah salah deteksi sesaat)."""
-    gone = 0
-    while gone < misses:
-        gone = gone + 1 if read() is None else 0
-        sleep(WATCH_SECONDS)
+def wait_for_removal(events, read=lambda: dongle.read_dongle(), sleep=time.sleep):
+    """Tidur sampai Windows melapor perubahan perangkat, lalu cek dongle. Return saat dongle hilang."""
+    while True:
+        if read() is None:
+            sleep(CONFIRM_SECONDS)
+            if read() is None:
+                return
+        events.wait(FALLBACK_SECONDS)
 
 
-def wait_for_dongle(window, server_url):
+def wait_for_dongle(window, server_url, events):
     """Tahan di halaman lokal sampai dongle terdaftar terdeteksi. Return True bila server mewajibkan dongle."""
     shown = None
     while True:
@@ -170,7 +174,10 @@ def wait_for_dongle(window, server_url):
         if msg != shown:
             window.evaluate_js(f"setMsg({json.dumps(msg)})")
             shown = msg
-        time.sleep(POLL_SECONDS)
+        if msg == "Colokkan dongle KomSaR":
+            events.wait(FALLBACK_SECONDS)   # bangun seketika saat flashdisk dicolokkan
+        else:
+            time.sleep(POLL_SECONDS)
 
 
 # Akhiri sesi di server sebelum meninggalkan halaman (sinkron agar selesai sebelum halaman diganti).
@@ -180,7 +187,7 @@ x.setRequestHeader('Content-Type','application/x-www-form-urlencoded');
 x.send('csrf_token='+encodeURIComponent(m.content));})()"""
 
 
-def gate(window, server_url):
+def gate(window, server_url, events):
     """Gerbang dongle; bila dongle dilepas saat di server: logout lalu kembali ke gerbang."""
     on_server = False
 
@@ -190,12 +197,12 @@ def gate(window, server_url):
 
     window.events.loaded += stay_on_server
     while True:
-        required = wait_for_dongle(window, server_url)
+        required = wait_for_dongle(window, server_url, events)
         on_server = True
         window.load_url(server_url)
         if not required:
             return
-        wait_for_removal()
+        wait_for_removal(events)
         try:
             window.evaluate_js(LOGOUT_JS)
         except Exception as e:  # noqa: BLE001 - logout gagal: server tetap mengakhiri sesi lewat timeout heartbeat
@@ -218,7 +225,7 @@ def main():
     bridge = Bridge(server_url)
     window = webview.create_window("KomSaR", html=GATE_HTML, js_api=bridge, width=1100, height=750)
     bridge._window = window
-    webview.start(gate, (window, server_url))
+    webview.start(gate, (window, server_url, devwatch.DeviceEvents()))
 
 
 if __name__ == "__main__":

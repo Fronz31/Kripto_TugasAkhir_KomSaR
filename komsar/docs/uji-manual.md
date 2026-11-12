@@ -25,7 +25,7 @@ Catat tanggal, penguji, dan hasil (lolos/gagal + catatan) di tiap bagian.
       semua pengguna di perangkat mana pun).
 - [ ] Flashdisk **X** (tidak terdaftar): aplikasi menampilkan "Dongle tidak terdaftar" atau tetap meminta dongle.
 - [ ] Salin `KOMSAR.DONGLE` dari D1 ke **Y**, colokkan Y saja: ditolak (serial volume berbeda).
-- [ ] **Cabut dongle saat sesi**: login penuh, cabut flashdisk: dalam sekitar 2 detik aplikasi logout dan kembali ke
+- [ ] **Cabut dongle saat sesi**: login penuh, cabut flashdisk: seketika (kurang dari 1 detik) aplikasi logout dan kembali ke
       halaman "Colokkan dongle KomSaR". Colokkan lagi: kembali ke halaman login.
 - [ ] **Cadangan server**: exe lama (tanpa pemantau dongle) dan dongle dicabut, tunggu lebih dari `DONGLE_HEARTBEAT_TIMEOUT`
       (default 60 detik) lalu klik menu apa pun: sesi berakhir dan kembali ke halaman login.

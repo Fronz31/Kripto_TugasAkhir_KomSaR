@@ -45,7 +45,7 @@ Langkah 1: username + password (+ bukti dongle dibaca otomatis dari flashdisk)
 - Pesan galat login sengaja umum ("Username, password, atau dongle tidak valid") agar tidak membocorkan
   bagian mana yang salah. Alasan sebenarnya tercatat di audit log.
 - Langkah 2 harus selesai dalam 3 menit setelah langkah 1.
-- Selama aplikasi terbuka, dongle diperiksa setiap 1 detik. Mencabut dongle langsung logout dan kembali ke
+- Aplikasi mendeteksi colok/cabut flashdisk lewat event Windows (tanpa polling). Mencabut dongle langsung logout dan kembali ke
   halaman "Colokkan dongle KomSaR". Server juga mengakhiri sesi bila heartbeat (tiap 30 detik) berhenti.
 
 ### 1.1 Login pertama (akun baru)
