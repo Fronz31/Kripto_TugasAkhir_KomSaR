@@ -1,4 +1,6 @@
 """Uji suara memakai FakeVoiceVerifier: validasi WAV, tantangan, enroll, verify, reset admin, endpoint."""
+import io
+import wave
 import numpy as np
 import pytest
 
@@ -55,6 +57,15 @@ def test_validate_wav_ok():
 def test_validate_wav_rejects(data):
     with pytest.raises(ValidationError):
         validate_wav(data)
+
+
+def test_validate_wav_rejects_silence():
+    pcm = np.ones(32000, dtype="<i2")          # puncak 1/32768: mikrofon dibisukan
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as w:
+        w.setnchannels(1); w.setsampwidth(2); w.setframerate(16000); w.writeframes(pcm.tobytes())
+    with pytest.raises(ValidationError, match="hening"):
+        validate_wav(buf.getvalue())
 
 
 def test_fake_verifier_separates_speakers():
