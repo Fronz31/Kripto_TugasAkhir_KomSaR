@@ -155,11 +155,21 @@ def test_load_server_url_priority(monkeypatch, tmp_path):
     assert main.load_server_url() == "https://side.example"               # config di samping exe menang
 
 
-def test_wait_for_removal_needs_consecutive_misses():
-    reads = iter([{"d": 1}, None, {"d": 1}, None, None, {"d": 1}])
-    calls = []
-    main.wait_for_removal(read=lambda: next(reads), sleep=calls.append)
-    assert len(calls) == 5          # kedipan sesaat (None lalu terbaca lagi) tidak memicu logout
+class FakeEvents:
+    def __init__(self):
+        self.waits = 0
+
+    def wait(self, timeout):
+        self.waits += 1
+        return True
+
+
+def test_wait_for_removal_sleeps_on_events_and_confirms():
+    reads = iter([{"d": 1}, None, {"d": 1}, {"d": 1}, None, None])
+    ev, slept = FakeEvents(), []
+    main.wait_for_removal(ev, read=lambda: next(reads), sleep=slept.append)
+    assert ev.waits == 3                    # tidak polling: hanya bangun saat event perangkat
+    assert slept == [main.CONFIRM_SECONDS] * 2   # salah baca sesaat (None lalu terbaca) tidak memutus sesi
 
 
 def test_gate_returns_to_gate_page_when_dongle_removed(monkeypatch):
@@ -186,8 +196,8 @@ def test_gate_returns_to_gate_page_when_dongle_removed(monkeypatch):
             self.log.append(("js", js))
 
     required = iter([True, False])      # sesi 1 wajib dongle; sesudah dongle dicolok lagi, gerbang selesai
-    monkeypatch.setattr(main, "wait_for_dongle", lambda w, s: next(required))
-    monkeypatch.setattr(main, "wait_for_removal", lambda: None)
+    monkeypatch.setattr(main, "wait_for_dongle", lambda w, s, e: next(required))
+    monkeypatch.setattr(main, "wait_for_removal", lambda e: None)
     w = Win()
-    main.gate(w, SERVER)
+    main.gate(w, SERVER, FakeEvents())
     assert w.log == [("url", SERVER), ("js", main.LOGOUT_JS), ("html", main.GATE_HTML), ("url", SERVER)]
