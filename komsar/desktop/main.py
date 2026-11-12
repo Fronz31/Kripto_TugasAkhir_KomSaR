@@ -18,6 +18,7 @@ import dongle
 FROZEN = getattr(sys, "frozen", False)
 BASE_DIR = os.path.dirname(sys.executable if FROZEN else os.path.abspath(__file__))
 POLL_SECONDS = 2
+WATCH_SECONDS = 1   # cek dongle saat sesi berjalan; dilepas 2x berturut-turut = kembali ke gerbang
 
 GATE_HTML = """<!doctype html>
 <html lang="id"><head><meta charset="utf-8"><title>KomSaR</title>
@@ -137,8 +138,16 @@ class Bridge:
         return base64.b64encode(self._recorder.stop()).decode()
 
 
-def gate(window, server_url):
-    """Tahan di halaman lokal sampai dongle terdaftar terdeteksi, lalu buka server."""
+def wait_for_removal(read=lambda: dongle.read_dongle(), sleep=time.sleep, misses=2):
+    """Blok sampai dongle tidak terbaca `misses` kali berturut-turut (cegah salah deteksi sesaat)."""
+    gone = 0
+    while gone < misses:
+        gone = gone + 1 if read() is None else 0
+        sleep(WATCH_SECONDS)
+
+
+def wait_for_dongle(window, server_url):
+    """Tahan di halaman lokal sampai dongle terdaftar terdeteksi. Return True bila server mewajibkan dongle."""
     shown = None
     while True:
         try:
@@ -146,7 +155,7 @@ def gate(window, server_url):
         except OSError:
             required = None  # server tidur/bangun atau offline
         if required is False:
-            break
+            return False
         if required is None:
             msg = "Server tidak dapat dihubungi"
         elif (found := dongle.read_dongle()) is None:
@@ -154,7 +163,7 @@ def gate(window, server_url):
         else:
             try:
                 if check_dongle(server_url, found):
-                    break
+                    return True
                 msg = "Dongle tidak terdaftar"
             except OSError:
                 msg = "Server tidak dapat dihubungi"
@@ -163,12 +172,36 @@ def gate(window, server_url):
             shown = msg
         time.sleep(POLL_SECONDS)
 
+
+# Akhiri sesi di server sebelum meninggalkan halaman (sinkron agar selesai sebelum halaman diganti).
+LOGOUT_JS = """(function(){var m=document.querySelector('meta[name="csrf-token"]');if(!m)return;
+var x=new XMLHttpRequest();x.open('POST','/logout',false);
+x.setRequestHeader('Content-Type','application/x-www-form-urlencoded');
+x.send('csrf_token='+encodeURIComponent(m.content));})()"""
+
+
+def gate(window, server_url):
+    """Gerbang dongle; bila dongle dilepas saat di server: logout lalu kembali ke gerbang."""
+    on_server = False
+
     def stay_on_server():
-        if origin(window.get_current_url()) != origin(server_url):
+        if on_server and origin(window.get_current_url()) != origin(server_url):
             window.load_url(server_url)
 
     window.events.loaded += stay_on_server
-    window.load_url(server_url)
+    while True:
+        required = wait_for_dongle(window, server_url)
+        on_server = True
+        window.load_url(server_url)
+        if not required:
+            return
+        wait_for_removal()
+        try:
+            window.evaluate_js(LOGOUT_JS)
+        except Exception as e:  # noqa: BLE001 - logout gagal: server tetap mengakhiri sesi lewat timeout heartbeat
+            print("logout gagal:", e)
+        on_server = False
+        window.load_html(GATE_HTML)
 
 
 def redirect_output():
