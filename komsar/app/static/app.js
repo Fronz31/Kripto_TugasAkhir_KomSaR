@@ -60,5 +60,6 @@ if (csrfMeta && document.body.getAttribute("data-session") && document.body.getA
     };
     beat();
     setInterval(beat, 30000);
+    document.addEventListener("visibilitychange", function () { if (!document.hidden) beat(); });   // timer di-throttle saat diminimalkan
   });
 }
