@@ -28,7 +28,7 @@ Catat tanggal, penguji, dan hasil (lolos/gagal + catatan) di tiap bagian.
 - [ ] **Cabut dongle saat sesi**: login penuh, cabut flashdisk: seketika (kurang dari 1 detik) aplikasi logout dan kembali ke
       halaman "Colokkan dongle KomSaR". Colokkan lagi: kembali ke halaman login.
 - [ ] **Cadangan server**: exe lama (tanpa pemantau dongle) dan dongle dicabut, tunggu lebih dari `DONGLE_HEARTBEAT_TIMEOUT`
-      (default 60 detik) lalu klik menu apa pun: sesi berakhir dan kembali ke halaman login.
+      (default 150 detik) lalu klik menu apa pun: sesi berakhir dan kembali ke halaman login.
 - [ ] Admin menonaktifkan D2 di `/admin/dongles`; login dengan D2 ditolak dengan pesan galat umum.
 - [ ] Browser biasa (bukan aplikasi desktop) membuka URL server: tampil "Gunakan aplikasi desktop KomSaR",
       tombol login nonaktif.

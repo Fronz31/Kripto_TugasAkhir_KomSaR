@@ -133,7 +133,7 @@ def test_enforcement_on(web):
     c = login(web, "andi01")                                    # login dengan dongle -> dongle_seen terisi
     assert c.get("/dashboard").status_code == 200
     with c.session_transaction() as s:
-        s["dongle_seen"] = time.time() - 61
+        s["dongle_seen"] = time.time() - 151
     r = c.get("/dashboard")
     assert r.status_code == 302 and "/login" in r.headers["Location"]
     with c.session_transaction() as s:
@@ -141,7 +141,7 @@ def test_enforcement_on(web):
 
     c = login(web, "andi01")
     with c.session_transaction() as s:
-        s["dongle_seen"] = time.time() - 61
+        s["dongle_seen"] = time.time() - 151
     assert c.get("/static/app.js").status_code == 200           # static dikecualikan
     assert api(c, "/api/dongle/heartbeat", proof(did, tok)).get_json() == {"ok": True}
     assert c.get("/dashboard").status_code == 200
@@ -162,3 +162,10 @@ def test_admin_page_and_deactivate(web):
     assert "Flashdisk Rahasia" in page and SERIAL in page and "dongles.js" in page
     c.post(f"/admin/dongles/{did}/deactivate", data={"csrf_token": "tok-test"})
     assert DongleService().verify(did, tok, SERIAL) is None
+
+
+def test_static_response_does_not_rewrite_session_cookie(web):
+    # Respons paralel (static) yang membawa cookie lama dulu menimpa dongle_seen hasil heartbeat.
+    c = login(web, "andi01")
+    r = c.get("/static/app.js")
+    assert r.status_code == 200 and "Set-Cookie" not in r.headers

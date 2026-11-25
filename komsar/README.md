@@ -58,7 +58,7 @@ Test: `.venv\Scripts\python -m pytest -q` (SQLite di memori, `VOICE_BACKEND=fake
 | `KOMSAR_TRUST_PROXY` | `0` | `1` di belakang reverse proxy HTTPS (InstaCloud, 1 hop) |
 | `MAX_FILE_MB` | `10` | batas ukuran file; file disimpan di database |
 | `KOMSAR_REQUIRE_DONGLE` | `1` | login butuh dongle dan setiap request butuh heartbeat dongle; `0` hanya development |
-| `DONGLE_HEARTBEAT_TIMEOUT` | `60` | detik sejak heartbeat dongle terakhir sebelum sesi diakhiri |
+| `DONGLE_HEARTBEAT_TIMEOUT` | `150` | detik sejak heartbeat dongle terakhir sebelum sesi diakhiri |
 | `KOMSAR_COOKIE_SECURE` | `1` | cookie sesi hanya lewat HTTPS; `0` hanya development lewat `http://127.0.0.1` |
 | `VOICE_BACKEND` | `speechbrain` | `fake` hanya test/development; bersama `FLASK_DEBUG=1` langkah suara dilewati |
 | `VOICE_MODEL_DIR` | `models/spkrec-ecapa-voxceleb` | folder model SpeechBrain (di image: `/app/models/...`) |

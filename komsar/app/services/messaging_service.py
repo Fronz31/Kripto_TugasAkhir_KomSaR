@@ -105,23 +105,27 @@ class MessagingService:
     # ---- tampilan chat -----------------------------------------------------
     def inbox(self, user: User) -> list[dict]:
         deliveries = [d for d in self.repo.inbox(user.id) if d.status != STATUS_FAILED]   # paket gagal tidak bisa dibuka
+        changed = False
         for d in deliveries:
             if d.status == STATUS_SENT:
-                d.status = STATUS_DELIVERED
-        db.session.commit()
+                d.status, changed = STATUS_DELIVERED, True
+        if changed:
+            db.session.commit()
+        senders = self.repo.users_by_pk(d.message.sender_pk for d in deliveries)   # noqa: F841 - prefetch untuk describe_delivery
         items = [self.describe_delivery(d) for d in deliveries]
         return sorted(items, key=lambda i: i["created_at"], reverse=True)
 
     def sent(self, user: User) -> list[dict]:
-        out = []
-        for m in sorted(self.repo.sent_messages(user.id), key=lambda m: m.created_at, reverse=True):
+        out, messages = [], self.repo.sent_messages(user.id)
+        users = self.repo.users_by_pk(d.recipient_pk for m in messages for d in m.deliveries)
+        for m in sorted(messages, key=lambda m: m.created_at, reverse=True):
             out.append({
                 "message_id": m.id, "kind": m.kind, "label": KIND_LABELS[m.kind],
                 "is_important": m.important,
                 "created_at": m.created_at.isoformat(), "encrypted": True,
-                "recipients": [{"username": db.session.get(User, d.recipient_pk).username, "status": d.status,
+                "recipients": [{"username": users[d.recipient_pk].username, "status": d.status,
                                 "error": d.error}
-                               for d in self.repo.deliveries_for_message(m.id)],
+                               for d in m.deliveries],   # di-eager-load, urut created_at
             })
         return out
 

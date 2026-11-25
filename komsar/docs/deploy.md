@@ -58,7 +58,7 @@ insta secrets set VOICE_BACKEND=speechbrain
 insta secrets set VOICE_THRESHOLD=0.25          # sesuaikan hasil kalibrasi suara tim
 ```
 
-Opsional: `MAX_FILE_MB` (default 10), `DONGLE_HEARTBEAT_TIMEOUT` (default 60 detik),
+Opsional: `MAX_FILE_MB` (default 10), `DONGLE_HEARTBEAT_TIMEOUT` (default 150 detik),
 `ENROLL_WINDOW_HOURS` (default 24).
 
 - **[belum diverifikasi]** Apakah secret di-set per service atau per project, dan apakah perlu `--service <nama>`.

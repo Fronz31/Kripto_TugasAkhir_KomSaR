@@ -51,7 +51,7 @@ class Config:
 
     # Wajib dongle saat login (langkah 1) dan selama sesi (heartbeat). Matikan (0) hanya untuk development.
     KOMSAR_REQUIRE_DONGLE = _flag("KOMSAR_REQUIRE_DONGLE", "1")
-    DONGLE_HEARTBEAT_TIMEOUT = _int("DONGLE_HEARTBEAT_TIMEOUT", 60)    # detik
+    DONGLE_HEARTBEAT_TIMEOUT = _int("DONGLE_HEARTBEAT_TIMEOUT", 150)   # detik; > 2x jeda timer WebView yang di-throttle (60 dtk) saat jendela diminimalkan
     # Sementara (uji coba): admin login tanpa langkah suara. Matikan (0) setelah suara admin didaftarkan.
     KOMSAR_ADMIN_SKIP_VOICE = _flag("KOMSAR_ADMIN_SKIP_VOICE", "0")
     DONGLE_CHECK_RATE_PER_MIN = 30                                      # per IP, /api/dongle/check
@@ -66,6 +66,8 @@ class Config:
     SESSION_COOKIE_SAMESITE = "Lax"
     SESSION_COOKIE_SECURE = _flag("KOMSAR_COOKIE_SECURE", "1")      # 0 hanya untuk development lewat http
     PERMANENT_SESSION_LIFETIME = timedelta(hours=8)
+    # Cookie hanya dikirim ulang bila sesi berubah: respons static/GET yang paralel tidak menimpa dongle_seen dari heartbeat.
+    SESSION_REFRESH_EACH_REQUEST = False
     TESTING = False
 
 
