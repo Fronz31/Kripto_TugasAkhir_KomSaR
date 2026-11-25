@@ -38,6 +38,8 @@
   var label = document.getElementById("voice-label");
   var timer = document.getElementById("voice-timer");
   var progress = document.getElementById("voice-progress");
+  var toggle = document.getElementById("voice-toggle");   // klik mulai / klik berhenti
+  var cancel = document.getElementById("voice-cancel");
   var enrolling = !!document.getElementById("voice-enroll");
   var V = window.komsarVoice;
   var HOLD = "Tahan untuk merekam", MAX_SECONDS = 10;
@@ -53,18 +55,21 @@
 
   // ---- tahan untuk merekam (exe baru: start_recording/stop_recording) ----
   var waiting = null;   // resolve() sampel yang sedang ditunggu; null = tombol tidak menerima rekaman
-  var recording = false, starting = null, tick = 0;
+  var recording = false, starting = null, tick = 0, viaToggle = false;
 
   function ready(on) {
     start.setAttribute("aria-disabled", on ? "false" : "true");
-    if (on) label.textContent = HOLD;
+    toggle.disabled = !on;
+    if (on) { label.textContent = HOLD; toggle.textContent = "Mulai rekam"; }
   }
 
   function setRecording(on) {
     recording = on;
     start.classList.toggle("recording", on);
     start.setAttribute("aria-pressed", on ? "true" : "false");
-    label.textContent = on ? "Merekam… lepas untuk berhenti" : HOLD;
+    label.textContent = on ? "Merekam…" : HOLD;   // petunjuk lepas/klik Berhenti ada di baris status
+    toggle.textContent = on ? "Berhenti" : "Mulai rekam";
+    if (cancel) cancel.classList.toggle("hidden", on);   // sedang merekam: Batal tidak relevan
     clearInterval(tick);
     timer.textContent = "";
     if (!on) return;
@@ -78,12 +83,13 @@
     tick = setInterval(update, 200);
   }
 
-  function press(e) {
+  function press(e, byToggle) {
     if (recording) return;
     if (!waiting) { if (!running) run(); return; }   // setelah gagal: tekan untuk kalimat baru
-    if (e.pointerId !== undefined) start.setPointerCapture(e.pointerId);
+    if (e && e.pointerId !== undefined) start.setPointerCapture(e.pointerId);
+    viaToggle = !!byToggle;
     setRecording(true);
-    say("Merekam… lepas untuk berhenti.");
+    say(viaToggle ? "Merekam… klik Berhenti bila selesai." : "Merekam… lepas untuk berhenti.");
     starting = window.pywebview.api.start_recording();
   }
 
@@ -112,19 +118,30 @@
     return new Promise(function (resolve) { waiting = resolve; ready(true); });
   }
 
-  function isHoldKey(e) { return e.key === " " || e.key === "Enter"; }
+  // Spasi di mana saja pada halaman (kecuali sedang di tombol/tautan lain); Enter hanya saat tombol rekam fokus.
+  function isHoldKey(e) {
+    var t = e.target, tag = t && t.tagName;
+    if (e.key === "Enter") return t === start;
+    if (e.key !== " " || e.ctrlKey || e.altKey || e.metaKey) return false;
+    return t === start || !(tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || tag === "BUTTON" || tag === "A"
+                           || (t && t.isContentEditable));
+  }
+
+  function releaseHold() { if (!viaToggle) release(); }   // mode klik tidak berhenti karena pointer keluar
 
   function setupHold() {
     holdMode = true;
+    toggle.classList.remove("hidden");
     start.addEventListener("pointerdown", function (e) { if (e.button === 0) press(e); });
-    ["pointerup", "pointercancel", "pointerleave", "blur"].forEach(function (t) { start.addEventListener(t, release); });
-    start.addEventListener("keydown", function (e) {
+    ["pointerup", "pointercancel", "pointerleave", "blur"].forEach(function (t) { start.addEventListener(t, releaseHold); });
+    document.addEventListener("keydown", function (e) {
       if (!isHoldKey(e)) return;
-      e.preventDefault();
+      e.preventDefault();                                  // cegah scroll / klik ganda
       if (!e.repeat) press(e);
     });
-    start.addEventListener("keyup", function (e) { if (isHoldKey(e)) { e.preventDefault(); release(); } });
+    document.addEventListener("keyup", function (e) { if (isHoldKey(e)) { e.preventDefault(); releaseHold(); } });
     start.addEventListener("contextmenu", function (e) { e.preventDefault(); });   // tekan lama di layar sentuh
+    toggle.addEventListener("click", function () { if (recording) { if (viaToggle) release(); } else press(null, true); });
   }
 
   // ---- satu putaran verifikasi / pendaftaran ----
@@ -145,6 +162,7 @@
   function idle() {
     if (!holdMode) { start.disabled = false; return; }
     start.setAttribute("aria-disabled", "false");
+    toggle.disabled = false;
     label.textContent = "Coba lagi";
   }
 

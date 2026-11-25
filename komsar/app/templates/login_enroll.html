@@ -17,7 +17,8 @@
     <p id="voice-progress" class="tag" aria-live="polite"></p>
     <p class="phrase" aria-live="polite"><strong id="voice-phrase"></strong></p>
     <p id="voice-status" class="note" role="status" aria-live="polite"></p>
-    <p><button type="button" id="voice-start" class="hold" aria-pressed="false" aria-describedby="voice-status"><span class="rec-dot" aria-hidden="true"></span><span id="voice-label">Tahan untuk merekam</span><span id="voice-timer" class="rec-timer" aria-hidden="true"></span></button></p>
+    <div class="voice-actions"><button type="button" id="voice-start" class="hold" aria-pressed="false" aria-describedby="voice-status"><span class="rec-dot" aria-hidden="true"></span><span id="voice-label">Tahan untuk merekam</span><span id="voice-timer" class="rec-timer" aria-hidden="true"></span></button>
+      <div class="voice-row"><button type="button" id="voice-toggle" class="btn ghost sm hidden">Mulai rekam</button></div></div>
   </div>
   {% endif %}
   <p class="note">Sesi login berlaku 3 menit. Bila habis, login ulang dengan password {{ 'baru' if pw_changed else 'sementara' }} dan dongle.</p>
