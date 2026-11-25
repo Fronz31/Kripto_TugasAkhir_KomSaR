@@ -158,9 +158,12 @@ pre.plain{white-space:pre-wrap;word-break:break-word;font:inherit;background:var
 .login-card .phrase strong:empty{min-height:0}
 
 /* ---- tahan untuk merekam: navy = siap, merah + titik amber berdenyut = sedang merekam ---- */
-button.hold{display:inline-flex;align-items:center;gap:10px;padding:14px 24px;font-size:17px;touch-action:none;user-select:none;-webkit-user-select:none}
+.voice-actions{margin:0 0 16px}
+.voice-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.voice-row:empty,.voice-row .hidden{display:none}
+button.hold{display:flex;width:100%;justify-content:center;align-items:center;gap:10px;padding:14px 24px;font-size:17px;touch-action:none;user-select:none;-webkit-user-select:none}
 .hold .rec-dot{flex:none;width:12px;height:12px;border-radius:50%;background:var(--rail-teks)}
-.hold .rec-timer{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:400}
+.hold .rec-timer{white-space:nowrap;font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:400}
 .hold .rec-timer:empty,.hold.plain .rec-dot{display:none}
 .hold.recording,.hold.recording:hover{background:var(--bahaya);border-color:var(--bahaya)}
 .hold.recording .rec-dot{background:var(--segel);box-shadow:0 0 0 3px rgba(245,166,35,.35);animation:rec-pulse 1s ease-in-out infinite}
