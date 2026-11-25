@@ -1,7 +1,10 @@
 """Akses record pesan/pengiriman/file di database (SQLAlchemy)."""
 from typing import Optional
 
+from sqlalchemy.orm import contains_eager, joinedload, selectinload
+
 from .extensions import db
+from .models.user import User
 from .models.records import (FILE_KINDS, KIND_ASSET, STATUS_FAILED, DeliveryRecord, FileRecord,
                              MessageRecord)
 
@@ -29,14 +32,22 @@ class SqlRepository:
     def get_file(self, file_id: str) -> Optional[FileRecord]:
         return db.session.get(FileRecord, file_id)
 
+    def users_by_pk(self, pks) -> dict[int, User]:
+        """Satu query untuk banyak user. Dict-nya juga menahan objek di identity map, jadi session.get berikutnya gratis."""
+        pks = set(pks)
+        return {u.id: u for u in User.query.filter(User.id.in_(pks))} if pks else {}
+
     def deliveries_for_message(self, message_id: str) -> list[DeliveryRecord]:
         return DeliveryRecord.query.filter_by(message_id=message_id).order_by(DeliveryRecord.created_at).all()
 
     def inbox(self, recipient_pk: int) -> list[DeliveryRecord]:
-        return DeliveryRecord.query.filter_by(recipient_pk=recipient_pk).order_by(DeliveryRecord.created_at).all()
+        return (DeliveryRecord.query.filter_by(recipient_pk=recipient_pk)
+                .options(joinedload(DeliveryRecord.message).joinedload(MessageRecord.file))   # cegah N+1
+                .order_by(DeliveryRecord.created_at).all())
 
     def sent_messages(self, sender_pk: int) -> list[MessageRecord]:
-        return MessageRecord.query.filter_by(sender_pk=sender_pk).order_by(MessageRecord.created_at).all()
+        return (MessageRecord.query.filter_by(sender_pk=sender_pk).options(selectinload(MessageRecord.deliveries))
+                .order_by(MessageRecord.created_at).all())
 
     def conversation(self, me_pk: int, other_pk: int) -> list[DeliveryRecord]:
         """Paket dua arah antara dua pengguna, urut waktu. Paket gagal untuk `me` tidak ikut (tidak bisa dibuka)."""
@@ -44,6 +55,7 @@ class SqlRepository:
                 .filter(db.or_(db.and_(MessageRecord.sender_pk == me_pk, DeliveryRecord.recipient_pk == other_pk),
                                db.and_(MessageRecord.sender_pk == other_pk, DeliveryRecord.recipient_pk == me_pk,
                                        DeliveryRecord.status != STATUS_FAILED)))
+                .options(contains_eager(DeliveryRecord.message).joinedload(MessageRecord.file))
                 .order_by(MessageRecord.created_at).all())
 
     def file_messages(self, user_pk: int) -> list[MessageRecord]:
@@ -53,6 +65,7 @@ class SqlRepository:
         return (MessageRecord.query
                 .filter(MessageRecord.kind.in_(FILE_KINDS),
                         db.or_(MessageRecord.sender_pk == user_pk, MessageRecord.id.in_(received)))
+                .options(selectinload(MessageRecord.deliveries), joinedload(MessageRecord.file))
                 .order_by(MessageRecord.created_at.desc()).all())
 
     def asset_files(self, user_pk: int) -> list[FileRecord]:
@@ -61,4 +74,5 @@ class SqlRepository:
         return (FileRecord.query.join(MessageRecord)
                 .filter(MessageRecord.kind == KIND_ASSET,
                         db.or_(MessageRecord.sender_pk == user_pk, MessageRecord.id.in_(received)))
+                .options(contains_eager(FileRecord.message).selectinload(MessageRecord.deliveries))
                 .order_by(MessageRecord.created_at).all())

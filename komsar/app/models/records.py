@@ -60,7 +60,7 @@ class DeliveryRecord(db.Model):
     recipient_pk = db.Column("recipient_id", db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
     wrapped_key = db.Column("wrapped_cek", db.LargeBinary, nullable=False)
     kdf_salt = db.Column("wrap_salt", db.LargeBinary, nullable=False)
-    stego_png = db.Column(db.LargeBinary)
+    stego_png = db.deferred(db.Column(db.LargeBinary))      # blob besar: dimuat hanya saat diakses
     status = db.Column(db.String(16), nullable=False, default=STATUS_SENT)
     error = db.Column(db.String(255))
     failed_attempts = db.Column(db.Integer, nullable=False, default=0)
@@ -84,7 +84,7 @@ class FileRecord(db.Model):
     plaintext_size = db.Column("size", db.Integer, nullable=False)
     mime = db.Column(db.String(100), nullable=False)
     algo = db.Column(db.String(32), nullable=False)
-    ciphertext = db.Column(db.LargeBinary)          # format KSF1 (file_cipher); kosong = ciphertext hilang
+    ciphertext = db.deferred(db.Column(db.LargeBinary))   # format KSF1 (file_cipher); kosong = ciphertext hilang; dimuat saat diakses
     ciphertext_sha256 = db.Column(db.String(64), nullable=False)
     block_index = db.Column(db.Integer)             # nomor blok blockchain (aset penting)
 

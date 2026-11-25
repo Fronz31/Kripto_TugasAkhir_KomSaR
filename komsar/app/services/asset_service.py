@@ -67,7 +67,9 @@ class AssetService:
 
     # ---- tampilan untuk pengguna ------------------------------------------
     def list_assets(self, user: User, check_integrity: bool = False) -> list[dict]:
-        items = [self._describe(user, f, check_integrity) for f in self.repo.asset_files(user.id)]
+        files = self.repo.asset_files(user.id)
+        users = self.repo.users_by_pk(pk for f in files for pk in [f.message.sender_pk, *f.message.recipient_pks])  # noqa: F841 - prefetch
+        items = [self._describe(user, f, check_integrity) for f in files]
         return sorted(items, key=lambda i: i["sent_at"], reverse=True)
 
     def asset_metadata(self, user: User, asset_id: str) -> dict:
